@@ -290,7 +290,7 @@ button,[data-a],summary{-webkit-user-select:none;user-select:none;-webkit-touch-
 nav button[data-t=studio]{will-change:transform;backface-visibility:hidden}
 nav button[data-t=studio][aria-current="page"]{background:var(--pri);color:var(--pri-ink);box-shadow:0 0 0 2.5px var(--accent);animation:none}
 nav button[data-t=studio].pop{animation:pop .6s linear(0.0,0.17,0.367,0.571,0.766,0.94,1.085,1.195,1.271,1.312,1.323,1.309,1.275,1.229,1.175,1.119,1.065,1.017,0.977,0.946,0.925,0.914,0.91,0.914,0.923,0.936,0.95,0.966,0.98,0.993,1.004,1.012,1.018,1.021,1.021,1.02,1.017,1.013,1.009,1.004,1.0)}
-@keyframes breathe{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent)}65%,100%{box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 0%,transparent)}}
+@keyframes breathe{0%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 75%,transparent)}30%{transform:scale(1.07)}60%,100%{transform:scale(1);box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 0%,transparent)}}
 @keyframes pop{from{transform:scale(.8)}to{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){nav button[data-t=studio],nav button[data-t=studio].pop{animation:none}}
 @media(min-width:820px){nav button[data-t=studio]{width:auto;height:auto;transform:none;margin:0;font-weight:600;animation:none;background:linear-gradient(145deg,var(--accent2),var(--accent));color:var(--accent-ink)}nav button[data-t=studio][aria-current="page"]{background:var(--surface2);color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}nav button[data-t=studio].pop{animation:none}}
