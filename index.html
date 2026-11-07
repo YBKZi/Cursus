@@ -445,12 +445,21 @@ async function rpc(fn,body){
 let CACHE=LS.g('cursus.cache')||{},OUT=LS.g('cursus.out')||{};
 const saveCache=()=>LS.s('cursus.cache',CACHE),saveOut=()=>LS.s('cursus.out',OUT);
 const snapOf=()=>({docs:Object.keys(CACHE).map(id=>({id,data:()=>CACHE[id]}))});
-async function drain(){
+let _dr=null,_again=false;
+async function drainOnce(){
   for(const id of Object.keys(OUT)){
     const op=OUT[id];
-    if(op.del)await rpc('cursus_del',{p_id:id});else await rpc('cursus_put',{p_id:id,p_data:op.data});
+    for(let t=0;;t++){
+      try{if(op.del)await rpc('cursus_del',{p_id:id});else await rpc('cursus_put',{p_id:id,p_data:op.data});break;}
+      catch(e){if(t>=2)throw e;await new Promise(r=>setTimeout(r,400*(t+1)));}
+    }
     if(OUT[id]===op){delete OUT[id];saveOut();}
   }
+}
+function drain(){
+  if(_dr){_again=true;return _dr;}
+  _dr=(async()=>{try{do{_again=false;await drainOnce();}while(_again);}finally{_dr=null;}})();
+  return _dr;
 }
 col={doc:id=>({
   set:async d=>{CACHE[id]=d;saveCache();OUT[id]={data:d};saveOut();await drain();},
