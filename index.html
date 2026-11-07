@@ -1891,6 +1891,8 @@ $('#file-ics').addEventListener('change',async ev=>{
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode==='db')rerender();});
 (function(){
+  const _sp=A['st-pick'];
+  A['st-pick']=function(el){const r=el.closest('.chips'),sl=r?r.scrollLeft:0;_sp(el);const n=document.querySelector('[data-a="st-pick"]');if(n&&n.parentElement)n.parentElement.scrollLeft=sl;};
   let cur=null,sx=0,sy=0,prev=null,t0=0;
   const sel='.chip[data-a="st-pick"]';
   function paint(el){const row=el.parentElement;prev=[...row.querySelectorAll(sel)].map(c=>[c,c.getAttribute('aria-pressed')]);prev.forEach(([c])=>c.setAttribute('aria-pressed',c===el?'true':'false'));}
