@@ -1097,7 +1097,7 @@ async function genPack(e,what,n){
   const k=importPack(e,d);saveEx(e);render();toast(k?`Aggiunti ${k} elementi`:'Niente di nuovo da aggiungere');
 }
 /* lettura dei file: testi, pacchetti json, Word, PowerPoint, PDF e zip con tutto dentro */
-const KNOWN_RE=/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log|json|html?|xml|docx|pptx|pdf)$/i,MAT_MAX=150000,MAT_ONE=45000,ZIP_BIG=150e6;
+const KNOWN_RE=/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log|json|html?|xml|docx|pptx|pdf)$/i,MAT_MAX=150000,MAT_ONE=45000,ZIP_BIG=150e6,ZIP_NEST=1.5e9;
 const xmlTxt=x=>x.replace(/<[^>]+>/g,'').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n)).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
 async function zipEntries(blob){
   const n=blob.size,base=Math.max(0,n-66000),tail=new DataView(await blob.slice(base,n).arrayBuffer());
@@ -1154,7 +1154,7 @@ async function extractText(name,blob,any){
   return null;
 }
 async function loadFiles(e,files){
-  let np=0,nt=0,bad=0,skip=0,ign=0,big=0,zbad=0,cap=MAT_ONE;
+  let np=0,nt=0,bad=0,skip=0,ign=0,big=0,zbad='',cap=MAT_ONE;
   const used=()=>stu(e).mat.reduce((a,m)=>a+m.x.length,0);
   const add=async(name,blob,any)=>{
     try{
@@ -1170,23 +1170,35 @@ async function loadFiles(e,files){
   for(const f of files){
     if(/\.zip$/i.test(f.name)){
       try{
-        const es=(await zipEntries(f)).filter(z=>!z.name.endsWith('/')&&!/(^|\/)(__MACOSX|\.)/.test(z.name));
-        const ok=es.filter(z=>KNOWN_RE.test(z.name));ign+=es.length-ok.length;
+        /* apre anche gli zip dentro gli zip (fino a 3 livelli): quelli non compressi si leggono senza caricarli in memoria */
+        const all=[];
+        const collect=async(bl,pre,depth)=>{
+          for(const z of await zipEntries(bl)){
+            if(z.name.endsWith('/')||/(^|\/)(__MACOSX|\.)/.test(z.name))continue;
+            if(/\.zip$/i.test(z.name)){
+              if(depth<3&&z.us<=ZIP_NEST&&!(z.fl&1)){try{await collect(await zipRead(bl,z),pre+z.name+'/',depth+1);}catch(_){bad++;}}else ign++;
+              continue;
+            }
+            if(KNOWN_RE.test(z.name))all.push({z,bl,name:pre+z.name});else ign++;
+          }
+        };
+        await collect(f,'',0);
+        const ok=all;
         /* il materiale e' limitato: divido lo spazio tra i file, cosi' ce n'e' un po' di ognuno */
         cap=Math.max(2500,Math.min(MAT_ONE,Math.floor(MAT_MAX/Math.max(1,ok.length))));
         let i=0;
-        for(const z of ok){
-          i++;
+        for(const it of ok){
+          const z=it.z;i++;
           if(used()>=MAT_MAX){skip+=ok.length-i+1;break;}
           if(z.us>ZIP_BIG||z.cs>ZIP_BIG){big++;continue;}
           if(i%3===1)toast(`Leggo lo zip… ${i}/${ok.length}`);
-          try{await add(z.name,await zipRead(f,z),false);}catch(_){bad++;}
+          try{await add(it.name,await zipRead(it.bl,z),false);}catch(_){bad++;}
         }
-      }catch(_){zbad++;}
+      }catch(err){zbad=(err&&err.name==='NotReadableError')?'il browser non riesce ad aprire il file (è su cloud non scaricato o troppo pesante?)':'zip non leggibile'+(err&&err.message&&err.message!=='zip'?' ('+err.message+')':' (rovinato o con password)');}
     }else await add(f.name,f,true);
   }
   saveEx(e);render();
-  toast([np?`${np} elementi importati`:'',nt?`${nt} testi aggiunti`:'',skip?`${skip} saltati: troppo materiale`:'',big?`${big} troppo grandi (oltre 150 MB)`:'',zbad?'zip non leggibile (rovinato o con password)':'',bad?`${bad} non letti`:'',ign?`${ign} di altro tipo ignorati`:''].filter(Boolean).join(' · ')||'Nessun file letto');
+  toast([np?`${np} elementi importati`:'',nt?`${nt} testi aggiunti`:'',skip?`${skip} saltati: troppo materiale`:'',big?`${big} troppo grandi (oltre 150 MB)`:'',zbad||'',bad?`${bad} non letti`:'',ign?`${ign} di altro tipo ignorati`:''].filter(Boolean).join(' · ')||'Nessun file letto');
 }
 document.getElementById('file-pack').addEventListener('change',async ev=>{
   const files=[...ev.target.files];ev.target.value='';const e=sx();if(!e||!files.length)return;
