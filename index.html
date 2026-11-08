@@ -946,16 +946,20 @@ function planOf(e){
   let units=(e.argomenti||[]).filter(x=>!x.d).map(x=>({t:x.t,cat:x.t}));
   if(!units.length&&!(e.argomenti||[]).length)units=[...new Set((s.sch||[]).map(x=>x.cat||x.t))].map(c=>({t:c,cat:c}));
   const days=[];if(n<=0)return{a,n,days};
-  const rip=n>=6?2:n>=3?1:0,sd=Math.max(1,n-rip);
-  for(let i=0;i<n;i++){
-    const d=addDays(T.date,i),t=[];
+  /* circa 3 giorni di studio a settimana, contati all'indietro dalla data d'esame (1, 4 e 6 giorni prima, poi ogni 7): il piano resta lo stesso da un giorno all'altro e gli altri giorni sono di riposo */
+  const off=[];for(let o=1;o<=n;o++)if([1,4,6].includes(o%7))off.push(o);
+  if(off.length<2&&n>=3)off.push(3);
+  off.sort((x,y)=>y-x);
+  const m=off.length,rip=m>=6?2:m>=3?1:0,sd=Math.max(1,m-rip);
+  for(let i=0;i<m;i++){
+    const d=addDays(T.date,n-off[i]),t=[];
     if(i<sd){
       units.filter((u,j)=>Math.floor(j*sd/Math.max(1,units.length))===i).forEach(u=>t.push({t:u.t,kind:'sch',cat:u.cat}));
       if(or)t.forEach(x=>{x.t='Ripeti a voce: '+x.t;});
       if((s.fc||[]).length)t.push({t:'Flashcard del giorno',kind:'flash'});
       if(!or&&(s.qz||[]).length&&i%2===1)t.push({t:'Quiz di allenamento',kind:'quiz'});
       if(!t.length)t.push({t:or?'Ripasso a voce':'Ripasso libero',kind:or?'sch':'quiz'});
-    }else if(i===n-1&&cs){t.push({t:or?'Prova orale simulata':'Simulazione d’esame',kind:'sim'},{t:'Flashcard da rivedere',kind:'flash'});}
+    }else if(i===m-1&&cs){t.push({t:or?'Prova orale simulata':'Simulazione d’esame',kind:'sim'},{t:'Flashcard da rivedere',kind:'flash'});}
     else{t.push(or?{t:'Ripasso a voce degli argomenti deboli',kind:cs?'sim':'sch'}:{t:'Ripasso: quiz sugli errori',kind:'quiz'});if((s.fc||[]).length)t.push({t:'Flashcard da rivedere',kind:'flash'});}
     days.push({d,t:t.map((x,j)=>({...x,k:d+'|'+j}))});
   }
@@ -963,8 +967,8 @@ function planOf(e){
 }
 function heroCard(e,home){
   const a=nextApp(e),n=a?diffDays(T.date,a.d):null,pr=prepOf(e),pd=predOf(e),has=pr!=null;
-  const pl0=a?planOf(e):null,td=pl0&&pl0.days[0]?pl0.days[0].t.filter(x=>!(stu(e).pd[x.k])):[];
-  const msg=!has?'Aggiungi il materiale per costruire il tuo piano di studio.':td.length?`Oggi: ${td.slice(0,2).map(x=>x.t).join(' · ')}`:(pr>=70?'Sei a buon punto: ora conta la costanza.':'Per oggi sei in pari. Ogni sessione conta.');
+  const pl0=a?planOf(e):null,tdd=pl0&&pl0.days.find(x=>x.d===T.date),td=tdd?tdd.t.filter(x=>!(stu(e).pd[x.k])):[],nxd=pl0&&pl0.days.find(x=>x.d>T.date);
+  const msg=!has?'Aggiungi il materiale per costruire il tuo piano di studio.':td.length?`Oggi: ${td.slice(0,2).map(x=>x.t).join(' · ')}`:(!tdd&&nxd)?`Oggi riposo. Si riparte ${nxd.d===addDays(T.date,1)?'domani':fDS(nxd.d)}.`:(pr>=70?'Sei a buon punto: ora conta la costanza.':'Per oggi sei in pari. Ogni sessione conta.');
   return `<section class="card now stack xhero"><div class="row sp"><small class="eyebrow">${n===0?'Esame oggi':'Prossimo esame'}</small>${a?`<small>${fDS(a.d)}${a.h?' · '+a.h:''}</small>`:''}</div>
   <div class="xtop"><div class="xcd">${a?`<b>${n===0?'Oggi':n}</b>${n===0?'':`<span>${n===1?'giorno':'giorni'}</span>`}`:`<span style="font-size:13px">${expSess(e)}</span>`}</div><div class="xname"><div class="big">${esc(nm(e.corso))}</div>${a&&a.aula?`<small>${esc(a.aula)}</small>`:''}</div></div>
   <div class="xstats"><div><small>Preparazione</small><b class="num">${has?pr+'%':'—'}</b><div class="bar ${prepTone(pr)}"><i style="width:${has?pr:0}%"></i></div></div><div><small>Voto previsto</small><b class="num">${pd?(pd.v?'~'+pd.v:'in crescita'):'—'}</b><small>${pd?'da '+pd.src:'serve qualche quiz'}</small></div></div>
@@ -1005,9 +1009,9 @@ function stPiano(e,s){
   if(!P.days.length)return `<div class="card empty"><h2>L’esame è oggi</h2><p>Ripassa con calma le cose che sai meglio e arriva riposato.</p></div>`;
   const tot=P.days.reduce((a,d)=>a+d.t.length,0),done=P.days.reduce((a,d)=>a+d.t.filter(x=>s.pd[x.k]).length,0);
   const show=S.stAll?P.days:P.days.slice(0,5);
-  let h=`<section class="card stack"><div class="row sp"><h2>Piano di studio</h2><span class="num">${done}/${tot}</span></div><div class="bar"><i style="width:${tot?100*done/tot:0}%"></i></div><small>Si ricalcola ogni giorno fino all’esame, in base a argomenti e materiale.</small>`;
+  let h=`<section class="card stack"><div class="row sp"><h2>Piano di studio</h2><span class="num">${done}/${tot}</span></div><div class="bar"><i style="width:${tot?100*done/tot:0}%"></i></div><small>Circa 3 giorni di studio a settimana, gli altri sono di riposo. Si adatta a argomenti, materiale e data dell’esame.</small>`;
   show.forEach((d,i)=>{h+=`<div class="pday"><div class="dh"><span>${d.d===T.date?'Oggi':fDS(d.d)}</span><small>${rel(d.d)}</small></div>${d.t.map(x=>`<div class="task"><label class="chk" style="flex:1"><input type="checkbox" data-in="pdchk" data-k="${esc(x.k)}" ${s.pd[x.k]?'checked':''}> <span ${s.pd[x.k]?'class="muted" style="text-decoration:line-through"':''}>${esc(x.t)}</span></label>${(x.kind==='sch'?s.sch.length:x.kind==='flash'?s.fc.length:x.kind==='sim'?canSim(e):s.qz.length)?`<button class="btn sm" data-a="st-go" data-v="${x.kind}" data-c="${esc(x.cat||'')}">${x.kind==='sch'?'Scheda':x.kind==='flash'?'Flashcard':x.kind==='sim'?'Simula':'Quiz'}</button>`:''}</div>`).join('')}</div>`;});
-  if(P.days.length>5)h+=`<button class="btn" data-a="st-all">${S.stAll?'Mostra meno':'Mostra tutti i '+P.days.length+' giorni'}</button>`;
+  if(P.days.length>5)h+=`<button class="btn" data-a="st-all">${S.stAll?'Mostra meno':'Mostra tutti i '+P.days.length+' giorni di studio'}</button>`;
   return h+'</section>';
 }
 function stMateriale(e,s){
