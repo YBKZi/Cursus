@@ -838,8 +838,9 @@ function marzoHTML(soon){
 
 /* ====================== studio ====================== */
 const STABS=[['piano','Piano'],['materiale','Materiale'],['schede','Schede'],['quiz','Quiz'],['flash','Flashcard'],['trappole','Trappole']];
-function stu(e){if(!e.studio)e.studio={sch:[],qz:[],fc:[],tr:[],mat:[],pd:{},qs:{},sims:[]};const s=e.studio;['sch','qz','fc','tr','mat','sims'].forEach(k=>{if(!s[k])s[k]=[];});if(!s.pd)s.pd={};if(!s.qs)s.qs={};if(!s.os)s.os={};if(!s.fmt)s.fmt={};return s;}
+function stu(e){if(!e.studio)e.studio={sch:[],qz:[],fc:[],tr:[],mat:[],pd:{},qs:{},sims:[]};const s=e.studio;['sch','qz','fc','tr','mat','sims'].forEach(k=>{if(!s[k])s[k]=[];});if(!s.pd)s.pd={};if(!s.qs)s.qs={};if(!s.os)s.os={};if(!s.fmt)s.fmt={};if(MODMAP[e.modalita])s.fmt.tipo=MODMAP[e.modalita];else if(!e.modalita&&s.fmt.tipo&&MODINV[s.fmt.tipo])e.modalita=MODINV[s.fmt.tipo];return s;}
 const sx=()=>S.exams[S.stId];
+const MODMAP={'Scritto':'scritto','Orale':'orale','Scritto + orale':'misto'},MODINV={scritto:'Scritto',orale:'Orale',misto:'Scritto + orale'};
 const fmtOf=e=>(e.studio&&e.studio.fmt)||{};
 const isOrale=e=>fmtOf(e).tipo==='orale';
 function fmtSum(f){
@@ -950,7 +951,7 @@ V.studio=()=>{
   const tab=S.stTab||(has?'piano':'materiale');
   let h=`<div class="chips">${list.map(x=>`<button class="chip" data-a="st-pick" data-id="${x.id}" aria-pressed="${x.id===S.stId}">${esc(nm(x.corso))}</button>`).join('')}</div>`;
   h+=heroCard(e,false);
-  {const f=s.fmt,sm=fmtSum(f);h+=`<section class="card"><div class="row sp"><span style="min-width:0"><small class="eyebrow">Tipo di esame</small><div>${sm?esc(sm):'<span class="muted">Non ancora descritto: lo studio si adatta quando lo scrivi.</span>'}</div></span><button class="btn sm ${sm?'':'pri'}" data-a="st-fmt">${sm?'Modifica':'Descrivi'}</button></div></section>`;}
+  {const f=s.fmt,sm=fmtSum(f)||e.modalita||'';h+=`<section class="card"><div class="row sp"><span style="min-width:0"><small class="eyebrow">Tipo di esame</small><div>${sm?esc(sm):'<span class="muted">Impostalo nella scheda dell\'esame: lo studio si adatta.</span>'}</div></span><button class="btn sm ${sm?'':'pri'}" data-a="ex-open" data-id="${e.id}">${sm?'Modifica':'Imposta'}</button></div></section>`;}
   h+=`<div class="seg">${STABS.map(([v,l])=>`<button data-a="st-tab" data-v="${v}" aria-pressed="${tab===v}">${l}</button>`).join('')}</div>`;
   return h+({piano:stPiano,materiale:stMateriale,schede:stSchede,quiz:stQuiz,flash:stFlash,trappole:stTrappole}[tab])(e,s);
 };
@@ -1133,7 +1134,7 @@ function examDetail(e){
   <div class="seg">${tabs.map(([v,l])=>`<button data-a="ex-tab" data-v="${v}" aria-pressed="${S.exTab===v}">${l}</button>`).join('')}</div>`;
   if(S.exTab==='info'){
     const inp=(f,l,t='text',extra='')=>`<label class="fld"><span>${l}</span><input type="${t}" data-in="exf" data-f="${f}" value="${esc(e[f]||'')}" ${extra}></label>`;
-    h+=`<section class="card stack"><div class="grid2">${inp('corso','Insegnamento','text','list="dl-corsi"')}<label class="fld"><span>Anno del corso</span><select class="inp" data-in="exf" data-f="anno"><option value="" ${+e.anno?'':'selected'}>Automatico</option>${[1,2,3].map(n=>`<option value="${n}" ${+e.anno===n?'selected':''}>${n}° anno</option>`).join('')}</select></label></div><div class="cfubox"><label class="fld"><span>Quanti CFU vale questo esame</span><input type="number" inputmode="numeric" id="cfuinp" min="0" max="60" value="${e.cfu||''}" placeholder="es. 9"></label><button class="btn pri" data-a="cfu-save" data-id="${e.id}">Salva CFU</button></div><small>Basta scriverlo: non serve aver sostenuto l'esame.</small><div class="grid2"><label class="fld"><span>Modalità</span><select data-in="exf" data-f="modalita">${['','Scritto','Orale','Scritto + orale','Pratico','Altro'].map(o=>`<option ${o===(e.modalita||'')?'selected':''}>${o}</option>`).join('')}</select></label></div>${inp('link','Link materiali','url','placeholder="https://"')}${e.link&&/^https?:\/\//.test(e.link)?`<a href="${esc(e.link)}" target="_blank" rel="noopener">Apri materiali</a>`:''}<label class="fld"><span>Soprannome (facoltativo)</span><input type="text" data-in="nick" data-n="${esc(e.corso)}" value="${esc((S.cfg.nick||{})[nickKey(e.corso)]||'')}" placeholder="come lo chiami tu"></label><label class="fld"><span>Info e programma</span><textarea rows="4" data-in="exf" data-f="info" placeholder="Programma, regole d'esame, contatti…">${esc(e.info||'')}</textarea></label></section>`;
+    h+=`<section class="card stack"><div class="grid2">${inp('corso','Insegnamento','text','list="dl-corsi"')}<label class="fld"><span>Anno del corso</span><select class="inp" data-in="exf" data-f="anno"><option value="" ${+e.anno?'':'selected'}>Automatico</option>${[1,2,3].map(n=>`<option value="${n}" ${+e.anno===n?'selected':''}>${n}° anno</option>`).join('')}</select></label></div><div class="cfubox"><label class="fld"><span>Quanti CFU vale questo esame</span><input type="number" inputmode="numeric" id="cfuinp" min="0" max="60" value="${e.cfu||''}" placeholder="es. 9"></label><button class="btn pri" data-a="cfu-save" data-id="${e.id}">Salva CFU</button></div><small>Basta scriverlo: non serve aver sostenuto l'esame.</small><div class="grid2"><label class="fld"><span>Modalità</span><select data-in="exf" data-f="modalita">${['','Scritto','Orale','Scritto + orale','Pratico','Altro'].map(o=>`<option ${o===(e.modalita||'')?'selected':''}>${o}</option>`).join('')}</select></label></div>${(()=>{const tp=MODMAP[e.modalita],f=stu(e).fmt;if(!tp)return '';const nf=(k,l,mx)=>`<label class="fld"><span>${l}</span><input type="number" inputmode="numeric" min="0" max="${mx}" data-in="fmt" data-k="${k}" value="${f[k]||''}"></label>`;return `<div class="grid2">${nf('n',tp==='orale'?'Domande all\'orale':'Domande a crocette',200)}${tp==='orale'?'':nf('opz','Opzioni per domanda',8)}${tp==='scritto'?'':nf('ap','Domande aperte',30)}${tp==='orale'?'':nf('min','Durata in minuti',300)}${tp==='orale'?'':`<label class="fld"><span>Penalità per errore (es. 0,33)</span><input type="text" inputmode="decimal" data-in="fmt" data-k="pen" value="${f.pen?String(f.pen).replace('.',','):''}"></label>`}</div><small>Lo studio usa questi dati per simulazioni, quiz e piano.</small>`;})()}${inp('link','Link materiali','url','placeholder="https://"')}${e.link&&/^https?:\/\//.test(e.link)?`<a href="${esc(e.link)}" target="_blank" rel="noopener">Apri materiali</a>`:''}<label class="fld"><span>Soprannome (facoltativo)</span><input type="text" data-in="nick" data-n="${esc(e.corso)}" value="${esc((S.cfg.nick||{})[nickKey(e.corso)]||'')}" placeholder="come lo chiami tu"></label><label class="fld"><span>Info e programma</span><textarea rows="4" data-in="exf" data-f="info" placeholder="Programma, regole d'esame, contatti…">${esc(e.info||'')}</textarea></label></section>`;
     {const mv=e.stato!=='superato'&&+e.cfu?minVoti().find(x=>x.e.id===e.id):null;
     if(mv)h+=`<div class="sug"><div><b>Voto minimo per il 110 e lode: ${votoTxt(mv)}</b><p>${mv.imp?'Con i bonus selezionati non è più raggiungibile.':`Presupponendo 30 e lode negli altri esami che restano. Soglia esatta ${nF(mv.exact)}${mv.min<votoGoal()?`; per prudenza punta a ${votoGoal()}`:''}.`}</p></div></div>`;}
     h+=`<section class="card"><div class="row sp"><h2>Appelli</h2><button class="btn sm" data-a="app-add" data-id="${e.id}">Aggiungi</button></div>`;
@@ -1702,6 +1703,7 @@ document.addEventListener('submit',e=>{const f=e.target.closest('[data-form]');i
 document.addEventListener('input',e=>{
   const el=e.target,k=el.dataset&&el.dataset.in;if(!k)return;
   if(k==='exf'){const x=ex();x[el.dataset.f]=el.dataset.f==='cfu'?+el.value||0:el.value;saveEx(x);}
+  else if(k==='fmt'){const x=ex(),f=stu(x).fmt,kk=el.dataset.k;if(kk==='pen'){const pn=String(el.value).replace(',','.');f.pen=pn!==''&&!isNaN(+pn)?+pn:0;}else f[kk]=+el.value||0;saveEx(x);}
   else if(k==='notat'||k==='notax'){const x=ex(),n=x.note.find(n=>n.i===el.dataset.i);n[k==='notat'?'t':'x']=el.value;if(k==='notax')autosize(el);saveEx(x);}
   else if(k==='lau'){const kk=el.dataset.k;S.cfg[kk]=el.type==='checkbox'?el.checked:(+el.value||0);persist('cfg');}
   else if(k==='nick'){setNick(el.dataset.n,el.value);}
@@ -1719,7 +1721,7 @@ document.addEventListener('change',e=>{
   else if(k==='pdchk'){const x=sx(),t=stu(x);if(el.checked)t.pd[el.dataset.k]=1;else delete t.pd[el.dataset.k];saveEx(x);render();}
   else if(k==='schr'){const x=sx(),c=stu(x).sch.find(y=>y.i===el.dataset.i);if(c){c.r=el.checked;S.stCat=c.cat||'Generale';saveEx(x);render();}}
   else if(k==='argchk'){const x=ex(),a=x.argomenti.find(a=>a.i===el.dataset.i);a.d=el.checked;saveEx(x);render();}
-  else if(k==='exf'&&el.tagName==='SELECT'){saveEx(ex());}
+  else if(k==='exf'&&el.tagName==='SELECT'){const x=ex();stu(x);saveEx(x);if(el.dataset.f==='modalita')render();}
   else if(k==='cfg-ns'){S.cfg.nonSegnate=el.value;persist('cfg');}
   else if(k==='cfg-mod'){S.cfg.moduli=el.value;persist('cfg');}
   else if(k==='mat'){const id=el.dataset.k,set=new Set(S.cfg.escl||[]);el.checked?set.delete(id):set.add(id);S.cfg.escl=[...set];persist('cfg');render();}
