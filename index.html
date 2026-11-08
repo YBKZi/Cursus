@@ -1863,7 +1863,11 @@ document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||!p.
 (function(){
   let cur=null,sx=0,sy=0;
   document.addEventListener('pointerdown',e=>{cur=null;const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
-    if(e.pointerType==='mouse'){S.pd=Date.now();S.pdEl=el;A.tab(el);return;}
+    if(e.pointerType==='mouse'){S.pd=Date.now();S.pdEl=el;
+      /* Studio: il rimbalzo parte prima, e il cambio schermata subito dopo (il ridisegno non blocca piu' l'inizio dell'animazione) */
+      if(el.dataset.t==='studio'&&el.getAttribute('aria-current')!=='page'){el.style.setProperty('--s0','1');el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove('pop'),700);requestAnimationFrame(()=>requestAnimationFrame(()=>A.tab(el)));}
+      else A.tab(el);
+      return;}
     cur=el;sx=e.clientX;sy=e.clientY;});
   document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>16||Math.abs(e.clientY-sy)>16||!inBox(cur,e))){tipOff();cur=null;}},{passive:true});
   document.addEventListener('pointercancel',()=>{tipOff();cur=null;});
@@ -2148,7 +2152,7 @@ window.__RT={};
 (function(){
   let b=null;
   const off=()=>{if(b){const x=b;b=null;x.classList.remove('push');x.classList.add('unpush');setTimeout(()=>x.classList.remove('unpush'),200);}};
-  document.addEventListener('pointerdown',e=>{off();const x=e.target.closest&&e.target.closest('nav button[data-t=studio]');if(x&&e.button<=0&&x.getAttribute('aria-current')!=='page'){b=x;x.classList.add('push');}},{passive:true,capture:true});
+  document.addEventListener('pointerdown',e=>{off();const x=e.target.closest&&e.target.closest('nav button[data-t=studio]');if(x&&e.button<=0&&e.pointerType!=='mouse'&&x.getAttribute('aria-current')!=='page'){b=x;x.classList.add('push');}},{passive:true,capture:true});
   document.addEventListener('pointermove',e=>{if(b&&!inBox(b,e))off();},{passive:true});
   document.addEventListener('pointercancel',off);
   document.addEventListener('pointerup',()=>{if(!b)return;const x=b;b=null;{const tm=getComputedStyle(x).transform;const mm=/matrix\(([-\d.e]+)/.exec(tm);x.style.setProperty('--s0',mm?Math.max(.85,Math.min(1,+mm[1])).toFixed(3):'.85');}x.classList.remove('push','unpush','pop');void x.offsetWidth;x.classList.add('pop');clearTimeout(x._pt);x._pt=setTimeout(()=>x.classList.remove('pop'),700);},true);
