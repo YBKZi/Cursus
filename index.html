@@ -71,7 +71,10 @@ small,.muted{color:var(--muted)} small{font-size:12.5px}
 nav{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));display:flex;gap:3px;border-radius:99px;padding:6px;width:max-content;max-width:calc(100% - 20px);background:var(--surface-solid);box-shadow:var(--shadow);border:1px solid var(--line)}
 nav button{position:relative;flex:none;width:clamp(44px,13.8vw,60px);height:clamp(48px,13.8vw,60px);display:flex;align-items:center;justify-content:center;border:0;background:none;padding:0;color:var(--muted);cursor:pointer;border-radius:50%;font-weight:500;transition:background .18s,color .18s}
 nav button .lbl{display:none}
-nav button::after{content:attr(aria-label);position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);background:var(--pri);color:var(--pri-ink);font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:99px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s ease-out!important}nav button.tip::after{opacity:1}nav button.tip{color:var(--ink)}
+nav button.tip{color:var(--ink)}
+/* tooltip della barra: un solo elemento, fuori dal tasto, così non segue le animazioni del tasto Studio */
+#navtip{position:absolute;bottom:calc(100% + 8px);left:0;transform:translate(-50%,6px) scale(.92);transform-origin:50% 100%;background:var(--pri);color:var(--pri-ink);font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:99px;white-space:nowrap;opacity:0;pointer-events:none;will-change:opacity,transform;transition:opacity .15s ease-out,transform .15s ease-out!important}
+#navtip.on{opacity:1;transform:translate(-50%,0) scale(1);transition:opacity .28s cubic-bezier(.22,.8,.3,1),transform .3s cubic-bezier(.22,.8,.3,1)!important}
 nav button svg{width:29px;height:29px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 nav button[aria-current="page"]{color:var(--pri-ink);background:var(--pri)}
 .navfoot{display:none}
@@ -246,7 +249,7 @@ details>summary{list-style:none}details>summary::-webkit-details-marker{display:
   nav button svg{width:21px;height:21px}
   nav button{width:auto;height:auto;flex:none;flex-direction:row;gap:12px;font-size:14.5px;padding:10px 14px;justify-content:flex-start;border-radius:14px}
   nav button .lbl{display:inline}
-  nav button::after{display:none!important}
+  nav button::after,#navtip{display:none!important}
   nav button[aria-current="page"]{background:var(--surface2);color:var(--ink)}
   #app{max-width:820px}
   #top,#view{padding-left:28px;padding-right:28px}#banner:not(:empty){margin:0 28px 6px}
@@ -1507,7 +1510,16 @@ let lastPt='mouse',_tipT=0,_tdT=-9999,_tipTm=0;
 const tipClear=k=>document.querySelectorAll('#nav button.tip').forEach(x=>{if(x!==k)x.classList.remove('tip');});
 window.inBox=(el,e)=>{const r=el.getBoundingClientRect();return e.clientX>=r.left-8&&e.clientX<=r.right+8&&e.clientY>=r.top-8&&e.clientY<=r.bottom+8;};
 const navBtn=e=>e.target.closest&&e.target.closest('#nav button');
-document.addEventListener('pointerdown',e=>{lastPt=e.pointerType||'mouse';if(lastPt!=='mouse')_tdT=performance.now();const b=navBtn(e);clearTimeout(_tipTm);tipClear(b);if(b){if(lastPt==='mouse'){b.classList.add('tip');_tipT=performance.now();}else _tipTm=setTimeout(()=>{if(b.isConnected){b.classList.add('tip');_tipT=performance.now();}},380);}},true);
+(function(){
+  const nv=document.getElementById('nav'),t=document.createElement('span');t.id='navtip';t.setAttribute('aria-hidden','true');
+  new MutationObserver(ms=>{
+    if(ms.every(r=>r.target===t))return;
+    if(!t.isConnected)nv.appendChild(t);
+    const b=nv.querySelector('button.tip');
+    if(b){t.textContent=b.getAttribute('aria-label')||'';t.style.left=(b.offsetLeft+b.offsetWidth/2)+'px';t.classList.add('on');}else t.classList.remove('on');
+  }).observe(nv,{attributes:true,attributeFilter:['class'],subtree:true});
+})();
+document.addEventListener('pointerdown',e=>{lastPt=e.pointerType||'mouse';if(lastPt!=='mouse')_tdT=performance.now();const b=navBtn(e);clearTimeout(_tipTm);tipClear(b);if(b){if(lastPt==='mouse'){b.classList.add('tip');_tipT=performance.now();}else _tipTm=setTimeout(()=>{if(b.isConnected){b.classList.add('tip');_tipT=performance.now();}},650);}},true);
 /* su touch il tooltip compare solo tenendo premuto e sfuma al rilascio o all'uscita dal tasto */
 const tipOff=()=>{clearTimeout(_tipTm);tipClear(null);};
 document.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')tipOff();},true);
