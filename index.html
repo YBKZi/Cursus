@@ -288,6 +288,7 @@ nav{align-items:center}
 nav button[data-t=studio]{background:linear-gradient(145deg,var(--accent2),var(--accent));color:var(--accent-ink);width:calc(clamp(44px,13.8vw,60px) + 8px);height:calc(clamp(48px,13.8vw,60px) + 8px);margin:-4px 1.5px;animation:breathe 2.4s ease-out infinite}
 nav button[data-t=studio] svg{stroke-width:1.9}
 nav button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media(max-width:819px){nav button{touch-action:none}}
 *,*::before,*::after{transition:none!important;scroll-behavior:auto!important}
 button,[data-a],summary,label,select,.cring [data-j]{touch-action:manipulation}
 button,[data-a],summary{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -1865,27 +1866,29 @@ document.addEventListener('click',()=>{_lastClick=performance.now();},true);
 window.addEventListener('click',e=>{if(_synEl&&e.isTrusted&&performance.now()-_syn<1000&&e.target.closest&&e.target.closest('[data-a]')===_synEl){_syn=0;_synEl=null;e.stopPropagation();e.preventDefault();}},true);
 document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('[data-a],button,summary'))e.preventDefault();});
 /* rete di sicurezza per i tocchi: se rilasci sul bottone senza averlo trascinato e il browser non genera il click, lo genero io (tap rapidissimi inclusi). Non agisce se il tocco ferma uno scroll in corso, né sui controlli gestiti a parte (barra, chip, selettori) */
+/* ogni dito e' tracciato a parte (pointerId): toccando in fretta un secondo dito non cancella il primo */
+const _lpm=new Map();
 document.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('[data-a]');
-  _lp=el&&e.button<=0&&e.pointerType!=='mouse'&&!el.hasAttribute('aria-pressed')&&!el.matches('nav [data-a=tab],input,select,textarea,label')&&performance.now()-_ls>120?{el,x:e.clientX,y:e.clientY,ok:true}:null;},true);
-document.addEventListener('pointermove',e=>{if(_lp&&Math.hypot(e.clientX-_lp.x,e.clientY-_lp.y)>10)_lp.ok=false;},true);
-document.addEventListener('pointercancel',()=>{if(_lp)_lp.ok=false;},true);
-document.addEventListener('scroll',()=>{_ls=performance.now();if(_lp)_lp.ok=false;},true);
-document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||!p.el.isConnected||!inBox(p.el,e))return;
+  if(el&&e.button<=0&&e.pointerType!=='mouse'&&!el.hasAttribute('aria-pressed')&&!el.matches('nav [data-a=tab],input,select,textarea,label')&&performance.now()-_ls>120)_lpm.set(e.pointerId,{el,x:e.clientX,y:e.clientY,ok:true});else _lpm.delete(e.pointerId);},true);
+document.addEventListener('pointermove',e=>{const p=_lpm.get(e.pointerId);if(p&&Math.hypot(e.clientX-p.x,e.clientY-p.y)>10)p.ok=false;},true);
+document.addEventListener('pointercancel',e=>{const p=_lpm.get(e.pointerId);if(p)p.ok=false;},true);
+document.addEventListener('scroll',()=>{_ls=performance.now();_lpm.forEach(p=>{p.ok=false;});},true);
+document.addEventListener('pointerup',e=>{const p=_lpm.get(e.pointerId);_lpm.delete(e.pointerId);if(!p||!p.ok||!p.el.isConnected||!inBox(p.el,e))return;
   const t0=performance.now();setTimeout(()=>{if(_lastClick<t0&&p.el.isConnected){_syn=performance.now();_synEl=p.el;p.el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}},30);},true);
 (function(){
-  let cur=null,sx=0,sy=0;
-  document.addEventListener('pointerdown',e=>{cur=null;const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
-    if(e.pointerType==='mouse'){S.pd=Date.now();S.pdEl=el;
+  const cm=new Map();
+  document.addEventListener('pointerdown',e=>{cm.delete(e.pointerId);const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
+    if(e.pointerType==='mouse'){S.pd=Date.now();S.pdEl=el;el._pd=Date.now();
       /* Studio: il rimbalzo parte prima, e il cambio schermata subito dopo (il ridisegno non blocca piu' l'inizio dell'animazione) */
       if(el.dataset.t==='studio'&&el.getAttribute('aria-current')!=='page'){el.style.setProperty('--s0','.85');el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove('pop'),700);requestAnimationFrame(()=>requestAnimationFrame(()=>A.tab(el)));}
       else A.tab(el);
       return;}
-    cur=el;sx=e.clientX;sy=e.clientY;});
-  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>16||Math.abs(e.clientY-sy)>16||!inBox(cur,e))){tipOff();cur=null;}},{passive:true});
-  document.addEventListener('pointercancel',()=>{tipOff();cur=null;});
-  document.addEventListener('pointerup',e=>{const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e))return;S.pd=Date.now();S.pdEl=el;tipOff();A.tab(el);});
+    cm.set(e.pointerId,{el,sx:e.clientX,sy:e.clientY});});
+  document.addEventListener('pointermove',e=>{const c=cm.get(e.pointerId);if(c&&(Math.abs(e.clientX-c.sx)>16||Math.abs(e.clientY-c.sy)>16||!inBox(c.el,e))){tipOff();cm.delete(e.pointerId);}},{passive:true});
+  document.addEventListener('pointercancel',e=>{tipOff();cm.delete(e.pointerId);});
+  document.addEventListener('pointerup',e=>{const c=cm.get(e.pointerId);cm.delete(e.pointerId);if(!c)return;const el=c.el;if(!el.isConnected||!inBox(el,e))return;S.pd=Date.now();S.pdEl=el;el._pd=Date.now();tipOff();A.tab(el);});
 })();
-document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='tab'&&el.closest('nav')&&S.pd&&S.pdEl===el&&Date.now()-S.pd<900){S.pd=0;return;}const f=A[el.dataset.a];if(f){if(el.dataset.arm&&!arm(el))return;f(el,e);}});
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='tab'&&el.closest('nav')&&el._pd&&Date.now()-el._pd<900){el._pd=0;return;}const f=A[el.dataset.a];if(f){if(el.dataset.arm&&!arm(el))return;f(el,e);}});
 /* mouse/trackpad: l'azione parte alla pressione, non al rilascio, cosi' anche il tap sul trackpad risponde subito. Il click nativo che segue viene scartato */
 (function(){
   let el=null,t0=0;
@@ -2122,18 +2125,18 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
 (function(){
   const _sp=A['st-pick'];
   A['st-pick']=function(el){const r=el.closest('.chips'),sl=r?r.scrollLeft:0;_sp(el);const n=document.querySelector('[data-a="st-pick"]');if(n&&n.parentElement)n.parentElement.scrollLeft=sl;};
-  let cur=null,sx=0,sy=0,prev=null,t0=0,lastId='';
+  let cur=null,cid=-1,sx=0,sy=0,prev=null,t0=0,lastId='';
   const sel='.chip[data-a="st-pick"]';
   function paint(el){const row=el.parentElement;prev=[...row.querySelectorAll(sel)].map(c=>[c,c.getAttribute('aria-pressed')]);prev.forEach(([c])=>c.setAttribute('aria-pressed',c===el?'true':'false'));}
   let pt=0;function undo(){clearTimeout(pt);if(prev)prev.forEach(([c,v])=>c.setAttribute('aria-pressed',v));prev=null;cur=null;}
   document.addEventListener('pointerdown',e=>{
     const el=e.target.closest&&e.target.closest(sel);if(!el)return;
-    cur=el;sx=e.clientX;sy=e.clientY;
+    cur=el;cid=e.pointerId;sx=e.clientX;sy=e.clientY;
   },{passive:true});
-  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))undo();},{passive:true});
-  document.addEventListener('pointercancel',()=>{if(cur)undo();});
+  document.addEventListener('pointermove',e=>{if(cur&&e.pointerId===cid&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))undo();},{passive:true});
+  document.addEventListener('pointercancel',e=>{if(cur&&e.pointerId===cid)undo();});
   document.addEventListener('pointerup',e=>{
-    if(!cur)return;clearTimeout(pt);const el=cur;cur=null;prev=null;
+    if(!cur||e.pointerId!==cid)return;clearTimeout(pt);const el=cur;cur=null;prev=null;
     if(!inBox(el,e))return;
     let tg=el;if(!tg.isConnected){tg=document.querySelector('.chip[data-a="st-pick"][data-id="'+el.dataset.id+'"]');if(!tg)return;}
     paint(tg);t0=Date.now();lastId=tg.dataset.id;A['st-pick'](tg);
@@ -2144,14 +2147,14 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
   },true);
 })();
 (function(){
-  let cur=null,sx=0,sy=0,t0=0,lastK='';
+  let cur=null,cid=-1,sx=0,sy=0,t0=0,lastK='';
   const sel='[data-a][aria-pressed]:not(.chip)';
   const keyOf=el=>el.dataset.a+'|'+el.textContent+'|'+(el.dataset.v||el.dataset.id||'');
-  document.addEventListener('pointerdown',e=>{cur=null;if(e.pointerType==='mouse'||e.button>0)return;const el=e.target.closest&&e.target.closest(sel);if(el&&!el.disabled){cur=el;sx=e.clientX;sy=e.clientY;}},{passive:true});
-  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))cur=null;},{passive:true});
-  document.addEventListener('pointercancel',()=>{cur=null;});
+  document.addEventListener('pointerdown',e=>{if(cur&&e.pointerId===cid)cur=null;if(e.pointerType==='mouse'||e.button>0)return;const el=e.target.closest&&e.target.closest(sel);if(el&&!el.disabled){cur=el;cid=e.pointerId;sx=e.clientX;sy=e.clientY;}},{passive:true});
+  document.addEventListener('pointermove',e=>{if(cur&&e.pointerId===cid&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))cur=null;},{passive:true});
+  document.addEventListener('pointercancel',e=>{if(e.pointerId===cid)cur=null;});
   document.addEventListener('pointerup',e=>{
-    const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e)||el.getAttribute('aria-pressed')==='true')return;
+    if(e.pointerId!==cid)return;const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e)||el.getAttribute('aria-pressed')==='true')return;
     [...el.parentNode.children].forEach(x=>{if(x.hasAttribute('aria-pressed'))x.setAttribute('aria-pressed',x===el?'true':'false');});
     t0=Date.now();lastK=keyOf(el);
     el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
