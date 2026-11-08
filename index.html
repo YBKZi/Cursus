@@ -1877,7 +1877,7 @@ document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||!p.
   document.addEventListener('pointerdown',e=>{cur=null;const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
     if(e.pointerType==='mouse'){S.pd=Date.now();S.pdEl=el;
       /* Studio: il rimbalzo parte prima, e il cambio schermata subito dopo (il ridisegno non blocca piu' l'inizio dell'animazione) */
-      if(el.dataset.t==='studio'&&el.getAttribute('aria-current')!=='page'){el.style.setProperty('--s0','1');el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove('pop'),700);requestAnimationFrame(()=>requestAnimationFrame(()=>A.tab(el)));}
+      if(el.dataset.t==='studio'&&el.getAttribute('aria-current')!=='page'){el.style.setProperty('--s0','.85');el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove('pop'),700);requestAnimationFrame(()=>requestAnimationFrame(()=>A.tab(el)));}
       else A.tab(el);
       return;}
     cur=el;sx=e.clientX;sy=e.clientY;});
