@@ -1915,7 +1915,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
   let pt=0;function undo(){clearTimeout(pt);if(prev)prev.forEach(([c,v])=>c.setAttribute('aria-pressed',v));prev=null;cur=null;}
   document.addEventListener('pointerdown',e=>{
     const el=e.target.closest&&e.target.closest(sel);if(!el)return;
-    cur=el;sx=e.clientX;sy=e.clientY;clearTimeout(pt);pt=setTimeout(()=>{if(cur===el)paint(el);},90);
+    cur=el;sx=e.clientX;sy=e.clientY;
   },{passive:true});
   document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>6||Math.abs(e.clientY-sy)>6))undo();},{passive:true});
   document.addEventListener('pointercancel',()=>{if(cur)undo();});
