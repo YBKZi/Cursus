@@ -1543,7 +1543,10 @@ function fastTab(){const k=pk(S.tab),n=PN[k];if(!n||S.mode==='loading'||S.mode==
 function calRender(){
   const k=pk('calendario'),n=PN[k];
   if(!(n&&S.mode!=='loading'&&S.mode!=='wait'&&performance.now()-n.at<60000&&n.sig===uiSig(k))){T=nowRome();paneOf(k).innerHTML=pv(k)();PN[k]={sig:uiSig(k),at:performance.now()};}
-  showPane(k);schedulePre();
+  showPane(k);
+  /* il selettore Mensile/Stagionale viene colorato al rilascio anche nella vista che sta per nascondersi: riallineo i bottoni di entrambe */
+  const cv=S.cv==='anno'?'anno':'mese';document.querySelectorAll('#view [data-a=cview]').forEach(b=>{const v=String(b.dataset.v===cv);if(b.getAttribute('aria-pressed')!==v)b.setAttribute('aria-pressed',v);});
+  schedulePre();
 }
 const calGo=()=>S.tab==='calendario'&&S.mode!=='loading'&&S.mode!=='wait'&&$('#view>.pane')?calRender():render();
 function schedulePre(){clearTimeout(_pre);_pre=setTimeout(preNext,120);}
