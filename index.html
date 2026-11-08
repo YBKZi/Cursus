@@ -1974,7 +1974,7 @@ window.__RT={};
 (function(){
   let b=null;
   const off=()=>{if(b){b.classList.remove('push');b=null;}};
-  document.addEventListener('pointerdown',e=>{off();const x=e.target.closest&&e.target.closest('nav button[data-t=studio]');if(x&&e.button<=0){b=x;x.classList.add('push');}},{passive:true,capture:true});
+  document.addEventListener('pointerdown',e=>{off();const x=e.target.closest&&e.target.closest('nav button[data-t=studio]');if(x&&e.button<=0&&x.getAttribute('aria-current')!=='page'){b=x;x.classList.add('push');}},{passive:true,capture:true});
   document.addEventListener('pointermove',e=>{if(b&&!inBox(b,e))off();},{passive:true});
   document.addEventListener('pointercancel',off);
   document.addEventListener('pointerup',()=>{if(!b)return;const x=b;b=null;x.classList.remove('push','pop');void x.offsetWidth;x.classList.add('pop');clearTimeout(x._pt);x._pt=setTimeout(()=>x.classList.remove('pop'),700);},true);
