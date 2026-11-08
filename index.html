@@ -1712,15 +1712,19 @@ const A={
   'sheet-close':()=>closeSheet()
 };
 /* pressione lunga: il click del browser puo' non arrivare, quindi l'azione parte comunque al rilascio */
-let _lp=null,_lastClick=0;
+let _lp=null,_lastClick=0,_ls=0,_syn=0,_synEl=null;
 document.addEventListener('click',()=>{_lastClick=performance.now();},true);
+/* se il click nativo arriva dopo quello sintetico, lo scarto: l'azione parte una volta sola */
+window.addEventListener('click',e=>{if(_synEl&&e.isTrusted&&performance.now()-_syn<1000&&e.target.closest&&e.target.closest('[data-a]')===_synEl){_syn=0;_synEl=null;e.stopPropagation();e.preventDefault();}},true);
 document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('[data-a],button,summary'))e.preventDefault();});
-document.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('[data-a]');_lp=el&&e.button<=0&&e.pointerType!=='mouse'?{el,x:e.clientX,y:e.clientY,t:performance.now(),ok:true}:null;},true);
+/* rete di sicurezza per i tocchi: se rilasci sul bottone senza averlo trascinato e il browser non genera il click, lo genero io (tap rapidissimi inclusi). Non agisce se il tocco ferma uno scroll in corso, né sui controlli gestiti a parte (barra, chip, selettori) */
+document.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('[data-a]');
+  _lp=el&&e.button<=0&&e.pointerType!=='mouse'&&!el.hasAttribute('aria-pressed')&&!el.matches('nav [data-a=tab],input,select,textarea,label')&&performance.now()-_ls>120?{el,x:e.clientX,y:e.clientY,ok:true}:null;},true);
 document.addEventListener('pointermove',e=>{if(_lp&&Math.hypot(e.clientX-_lp.x,e.clientY-_lp.y)>10)_lp.ok=false;},true);
 document.addEventListener('pointercancel',()=>{if(_lp)_lp.ok=false;},true);
-document.addEventListener('scroll',()=>{if(_lp)_lp.ok=false;},true);
-document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||performance.now()-p.t<350||!p.el.isConnected)return;
-  const t0=performance.now();setTimeout(()=>{if(_lastClick<t0&&p.el.isConnected)p.el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));},25);},true);
+document.addEventListener('scroll',()=>{_ls=performance.now();if(_lp)_lp.ok=false;},true);
+document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||!p.el.isConnected||!inBox(p.el,e))return;
+  const t0=performance.now();setTimeout(()=>{if(_lastClick<t0&&p.el.isConnected){_syn=performance.now();_synEl=p.el;p.el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}},30);},true);
 (function(){
   let cur=null,sx=0,sy=0;
   document.addEventListener('pointerdown',e=>{cur=null;const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
