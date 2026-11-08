@@ -1428,7 +1428,7 @@ document.addEventListener('animationend',e=>{if(e.animationName==='pop')e.target
 /* tooltip della barra: su touch spariscono al primo tocco o scroll altrove */
 let lastPt='mouse',_tipT=0,_tdT=-9999;
 const tipClear=k=>document.querySelectorAll('#nav button.tip').forEach(x=>{if(x!==k)x.classList.remove('tip');});
-window.inBox=(el,e)=>{const r=el.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;};
+window.inBox=(el,e)=>{const r=el.getBoundingClientRect();return e.clientX>=r.left-8&&e.clientX<=r.right+8&&e.clientY>=r.top-8&&e.clientY<=r.bottom+8;};
 const navBtn=e=>e.target.closest&&e.target.closest('#nav button');
 document.addEventListener('pointerdown',e=>{lastPt=e.pointerType||'mouse';if(lastPt!=='mouse')_tdT=performance.now();const b=navBtn(e);tipClear(b);if(b&&lastPt==='mouse'){b.classList.add('tip');_tipT=performance.now();}},true);
 document.addEventListener('pointerover',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;lastPt=e.pointerType||'mouse';const b=navBtn(e);tipClear(b);if(b)b.classList.add('tip');},true);
@@ -1702,13 +1702,13 @@ document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||per
 (function(){
   let cur=null,sx=0,sy=0;
   document.addEventListener('pointerdown',e=>{cur=null;const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
-    if(e.pointerType==='mouse'){S.pd=Date.now();A.tab(el);return;}
-    cur=el;sx=e.clientX;sy=e.clientY;S.pd=Date.now();});
-  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))cur=null;},{passive:true});
+    if(e.pointerType==='mouse'){S.pd=Date.now();S.pdEl=el;A.tab(el);return;}
+    cur=el;sx=e.clientX;sy=e.clientY;});
+  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>16||Math.abs(e.clientY-sy)>16))cur=null;},{passive:true});
   document.addEventListener('pointercancel',()=>{cur=null;});
-  document.addEventListener('pointerup',e=>{const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e))return;S.pd=Date.now();tipClear(el);el.classList.add('tip');_tipT=performance.now();A.tab(el);});
+  document.addEventListener('pointerup',e=>{const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e))return;S.pd=Date.now();S.pdEl=el;tipClear(el);el.classList.add('tip');_tipT=performance.now();A.tab(el);});
 })();
-document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='tab'&&el.closest('nav')&&S.pd&&Date.now()-S.pd<900){S.pd=0;return;}const f=A[el.dataset.a];if(f){if(el.dataset.arm&&!arm(el))return;f(el,e);}});
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='tab'&&el.closest('nav')&&S.pd&&S.pdEl===el&&Date.now()-S.pd<900){S.pd=0;return;}const f=A[el.dataset.a];if(f){if(el.dataset.arm&&!arm(el))return;f(el,e);}});
 function handleForm(f){
   const x=ex(),fd=new FormData(f);
   if(!x)return;
@@ -1929,7 +1929,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
 (function(){
   const _sp=A['st-pick'];
   A['st-pick']=function(el){const r=el.closest('.chips'),sl=r?r.scrollLeft:0;_sp(el);const n=document.querySelector('[data-a="st-pick"]');if(n&&n.parentElement)n.parentElement.scrollLeft=sl;};
-  let cur=null,sx=0,sy=0,prev=null,t0=0;
+  let cur=null,sx=0,sy=0,prev=null,t0=0,lastId='';
   const sel='.chip[data-a="st-pick"]';
   function paint(el){const row=el.parentElement;prev=[...row.querySelectorAll(sel)].map(c=>[c,c.getAttribute('aria-pressed')]);prev.forEach(([c])=>c.setAttribute('aria-pressed',c===el?'true':'false'));}
   let pt=0;function undo(){clearTimeout(pt);if(prev)prev.forEach(([c,v])=>c.setAttribute('aria-pressed',v));prev=null;cur=null;}
@@ -1937,32 +1937,33 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
     const el=e.target.closest&&e.target.closest(sel);if(!el)return;
     cur=el;sx=e.clientX;sy=e.clientY;
   },{passive:true});
-  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>6||Math.abs(e.clientY-sy)>6))undo();},{passive:true});
+  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))undo();},{passive:true});
   document.addEventListener('pointercancel',()=>{if(cur)undo();});
   document.addEventListener('pointerup',e=>{
     if(!cur)return;clearTimeout(pt);const el=cur;cur=null;prev=null;
-    if(!el.isConnected||!inBox(el,e))return;
-    paint(el);t0=Date.now();A['st-pick'](el);
+    if(!inBox(el,e))return;
+    let tg=el;if(!tg.isConnected){tg=document.querySelector('.chip[data-a="st-pick"][data-id="'+el.dataset.id+'"]');if(!tg)return;}
+    paint(tg);t0=Date.now();lastId=tg.dataset.id;A['st-pick'](tg);
   });
   window.addEventListener('click',e=>{
     const el=e.target.closest&&e.target.closest(sel);
-    if(el&&Date.now()-t0<900){e.stopPropagation();e.preventDefault();}
+    if(el&&Date.now()-t0<700&&el.dataset.id===lastId){e.stopPropagation();e.preventDefault();}
   },true);
 })();
 (function(){
-  let cur=null,sx=0,sy=0,t0=0;
+  let cur=null,sx=0,sy=0,t0=0,lastK='';
   const sel='[data-a][aria-pressed]:not(.chip)';
+  const keyOf=el=>el.dataset.a+'|'+el.textContent+'|'+(el.dataset.v||el.dataset.id||'');
   document.addEventListener('pointerdown',e=>{cur=null;if(e.pointerType==='mouse'||e.button>0)return;const el=e.target.closest&&e.target.closest(sel);if(el&&!el.disabled){cur=el;sx=e.clientX;sy=e.clientY;}},{passive:true});
-  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>6||Math.abs(e.clientY-sy)>6))cur=null;},{passive:true});
+  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))cur=null;},{passive:true});
   document.addEventListener('pointercancel',()=>{cur=null;});
-  document.addEventListener('scroll',()=>{cur=null;},true);
   document.addEventListener('pointerup',e=>{
     const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e)||el.getAttribute('aria-pressed')==='true')return;
     [...el.parentNode.children].forEach(x=>{if(x.hasAttribute('aria-pressed'))x.setAttribute('aria-pressed',x===el?'true':'false');});
-    t0=Date.now();
+    t0=Date.now();lastK=keyOf(el);
     el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
   });
-  window.addEventListener('click',e=>{if(e.isTrusted&&Date.now()-t0<900&&e.target.closest&&e.target.closest(sel)){e.stopPropagation();e.preventDefault();}},true);
+  window.addEventListener('click',e=>{{const q=e.isTrusted&&Date.now()-t0<700&&e.target.closest&&e.target.closest(sel);if(q&&keyOf(q)===lastK){e.stopPropagation();e.preventDefault();}}},true);
 })();
 document.addEventListener('pointerdown',e=>{document.documentElement.classList.toggle('touch',e.pointerType!=='mouse');},{capture:true,passive:true});
 document.addEventListener('mousemove',e=>{if(e.movementX||e.movementY)document.documentElement.classList.remove('touch');},{passive:true});
