@@ -1912,15 +1912,15 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
   let cur=null,sx=0,sy=0,prev=null,t0=0;
   const sel='.chip[data-a="st-pick"]';
   function paint(el){const row=el.parentElement;prev=[...row.querySelectorAll(sel)].map(c=>[c,c.getAttribute('aria-pressed')]);prev.forEach(([c])=>c.setAttribute('aria-pressed',c===el?'true':'false'));}
-  function undo(){if(prev)prev.forEach(([c,v])=>c.setAttribute('aria-pressed',v));prev=null;cur=null;}
+  let pt=0;function undo(){clearTimeout(pt);if(prev)prev.forEach(([c,v])=>c.setAttribute('aria-pressed',v));prev=null;cur=null;}
   document.addEventListener('pointerdown',e=>{
     const el=e.target.closest&&e.target.closest(sel);if(!el)return;
-    cur=el;sx=e.clientX;sy=e.clientY;paint(el);
+    cur=el;sx=e.clientX;sy=e.clientY;clearTimeout(pt);pt=setTimeout(()=>{if(cur===el)paint(el);},90);
   },{passive:true});
-  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8))undo();},{passive:true});
+  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>6||Math.abs(e.clientY-sy)>6))undo();},{passive:true});
   document.addEventListener('pointercancel',()=>{if(cur)undo();});
   document.addEventListener('pointerup',e=>{
-    if(!cur)return;const el=cur;cur=null;prev=null;
+    if(!cur)return;clearTimeout(pt);const el=cur;cur=null;prev=null;
     if(!el.isConnected)return;
     t0=Date.now();A['st-pick'](el);
   });
