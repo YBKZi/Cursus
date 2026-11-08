@@ -335,12 +335,14 @@ const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rid=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
 const DAY=864e5;
-const dp=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d));};
-const dfmt=d=>d.toISOString().slice(0,10);
+const _dpc=new Map(),_dfc=new Map();
+const dp=s=>{let t=_dpc.get(s);if(t===undefined){const[y,m,d]=s.split('-').map(Number);t=Date.UTC(y,m-1,d);_dpc.set(s,t);}return new Date(t);};
+const dfmt=d=>{const t=d.getTime();let r=_dfc.get(t);if(r===undefined){r=d.toISOString().slice(0,10);_dfc.set(t,r);}return r;};
 const addDays=(s,n)=>dfmt(new Date(dp(s).getTime()+n*DAY));
 const wd=s=>(dp(s).getUTCDay()+6)%7;
 const diffDays=(a,b)=>Math.round((dp(b)-dp(a))/DAY);
-const hm=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
+const _hmc=new Map();
+const hm=t=>{let r=_hmc.get(t);if(r===undefined){const[h,m]=t.split(':').map(Number);r=h*60+m;_hmc.set(t,r);}return r;};
 const fD=s=>`${GGs[wd(s)]} ${+s.slice(8,10)} ${MMs[+s.slice(5,7)-1]}`;
 const fDS=s=>`${String(GG[wd(s)]).charAt(0).toUpperCase()+GG[wd(s)].slice(1)}, ${+s.slice(8,10)} ${MM[+s.slice(5,7)-1]}`;
 const fDL=s=>`${GG[wd(s)]} ${+s.slice(8,10)} ${MM[+s.slice(5,7)-1]}`;
@@ -458,7 +460,8 @@ async function rpc(fn,body){
   const t=await r.text();return t?JSON.parse(t):null;
 }
 let CACHE=LS.g('cursus.cache')||{},OUT=LS.g('cursus.out')||{};
-const saveCache=()=>LS.s('cursus.cache',CACHE),saveOut=()=>LS.s('cursus.out',OUT);
+let _sc=0;const flushCache=()=>{if(_sc){clearTimeout(_sc);_sc=0;}LS.s('cursus.cache',CACHE);};
+const saveCache=()=>{if(_sc)return;_sc=setTimeout(flushCache,300);},saveOut=()=>LS.s('cursus.out',OUT);
 const snapOf=()=>({docs:Object.keys(CACHE).map(id=>({id,data:()=>CACHE[id]}))});
 let _dr=null,_again=false;
 async function drainOnce(){
@@ -1517,7 +1520,7 @@ function perSheet(p){
 }
 function setMonth(ym){ym=clampYM(ym);S.cm=ym;S.cd=ym===T.date.slice(0,7)?T.date:ym+'-01';render();}
 const A={
-  tab:el=>{if(el.dataset.t==='studio'&&S.tab==='studio'&&!S.qz&&!S.fc&&el.isConnected){window.scrollTo(0,0);return;}S.tab=el.dataset.t;if(S.tab!=='esami'){S.exId=null;S.rip=null;}if(S.tab==='studio'){S.qz=null;S.fc=null;S.pop=true;try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}}renderNav();S.pop=false;++_tabK;render();window.scrollTo(0,0);},
+  tab:el=>{if(el.dataset.t==='studio'&&S.tab==='studio'&&!S.qz&&!S.fc&&el.isConnected){window.scrollTo(0,0);return;}S.tab=el.dataset.t;if(S.tab!=='esami'){S.exId=null;S.rip=null;}if(S.tab==='studio'){S.qz=null;S.fc=null;S.pop=true;try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}}renderNav();S.pop=false;const k=++_tabK;if((window.__RT[S.tab]||0)>25)requestAnimationFrame(()=>setTimeout(()=>{if(k!==_tabK)return;render();window.scrollTo(0,0);},0));else{render();window.scrollTo(0,0);}},
   lsub:el=>{S.lsub=el.dataset.v;render();},
   cview:el=>{S.cv=el.dataset.v==='anno'?'anno':'mese';if(S.cv==='anno')S.cy=clampAA(aaOf(S.cd));render();},
   'cy-prev':()=>setYear(+S.cy-1),'cy-next':()=>setYear(+S.cy+1),
@@ -1963,6 +1966,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
 })();
 document.addEventListener('pointerdown',e=>{document.documentElement.classList.toggle('touch',e.pointerType!=='mouse');},{capture:true,passive:true});
 document.addEventListener('mousemove',e=>{if(e.movementX||e.movementY)document.documentElement.classList.remove('touch');},{passive:true});
+window.__RT={};
+(function(){const r=render;render=function(){const t=performance.now(),tab=S.tab;r();window.__RT[tab]=performance.now()-t;};})();
+addEventListener('pagehide',()=>{if(_sc)flushCache();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&_sc)flushCache();});
 (function(){
   let el=null;
   const sel='button:not(:disabled),[data-a]';
