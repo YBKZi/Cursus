@@ -289,7 +289,7 @@ button,[data-a],summary{-webkit-user-select:none;user-select:none;-webkit-touch-
 .btn,.seg button,.ex,.lnk{transition-duration:.07s}
 nav button[data-t=studio]{will-change:transform;backface-visibility:hidden}
 nav button[data-t=studio][aria-current="page"]{background:var(--pri);color:var(--pri-ink);box-shadow:0 0 0 2.5px var(--accent);animation:none}
-nav button[data-t=studio].pop{animation:pop .6s linear(0.0,0.17,0.367,0.571,0.766,0.94,1.085,1.195,1.271,1.312,1.323,1.309,1.275,1.229,1.175,1.119,1.065,1.017,0.977,0.946,0.925,0.914,0.91,0.914,0.923,0.936,0.95,0.966,0.98,0.993,1.004,1.012,1.018,1.021,1.021,1.02,1.017,1.013,1.009,1.004,1.0)}
+nav button[data-t=studio].pop{animation:pop .6s linear(0.0,0.129,0.335,0.55,0.754,0.937,1.089,1.205,1.285,1.328,1.339,1.324,1.289,1.24,1.184,1.125,1.068,1.018,0.976,0.943,0.921,0.91,0.905,0.91,0.919,0.933,0.948,0.964,0.979,0.993,1.004,1.013,1.019,1.022,1.022,1.021,1.018,1.014,1.009,1.004,1.0)}
 @keyframes breathe{0%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 75%,transparent)}30%{transform:scale(1.07)}60%,100%{transform:scale(1);box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 0%,transparent)}}
 @keyframes pop{from{transform:scale(.85)}to{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){nav button[data-t=studio],nav button[data-t=studio].pop{animation:none}}
@@ -309,7 +309,7 @@ button:not(:disabled){cursor:pointer}
 .prs:not(.pri):not([aria-pressed=true]):not([aria-current=page]):not([data-t=studio]){box-shadow:inset 0 0 0 99px var(--hov)}
 .prs.pri,.prs[aria-pressed=true],.prs[aria-current=page],.prs[data-t=studio]{filter:brightness(.93)}
 html body .nt,html body .nt::after{transition:none!important}
-nav button[data-t=studio].push{animation:push .16s ease-out forwards!important}
+nav button[data-t=studio].push{animation:push .09s ease-out forwards!important}
 nav button[data-t=studio].unpush{animation:unpush .16s ease-out!important}
 @keyframes push{from{transform:scale(1)}to{transform:scale(.85)}}
 @keyframes unpush{from{transform:scale(.85)}to{transform:scale(1)}}
