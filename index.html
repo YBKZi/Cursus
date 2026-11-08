@@ -684,7 +684,16 @@ const STL={ok:['In regola','ok'],attenzione:['Attenzione','warn'],limite:['Al li
 const marginTxt=c=>c.margH==null?'—':c.margH<0?`nessuna: sei sotto soglia di ${hrs(-c.margH)}`:`${pl(c.margL,'lezione','lezioni')} (${hrs(c.margH)})`;
 
 /* ====================== esami e carriera ====================== */
-const exList=()=>Object.values(S.exams).filter(e=>e&&!isExcl(e.corso)&&subj(e.corso)===own(e.corso)).sort(exCmp);
+const exTouched=e=>(+e.cfu>0)||(e.appelli||[]).length||e.stato==='superato'||(e.argomenti||[]).length||(e.domande||[]).length||(e.note||[]).length||!!(e.studio&&['sch','qz','fc','tr','mat','lnk'].some(k=>(e.studio[k]||[]).length));
+const exHid=e=>!!e.auto&&!exTouched(e);
+const exList=()=>Object.values(S.exams).filter(e=>e&&!isExcl(e.corso)&&subj(e.corso)===own(e.corso)&&!exHid(e)).sort(exCmp);
+function exAvail(){
+  const m=new Map();
+  Object.values(S.exams).filter(Boolean).forEach(e=>{if(exHid(e)&&!isExcl(e.corso)&&subj(e.corso)===own(e.corso))m.set(normT(e.corso),e.corso);});
+  const have=new Set(Object.values(S.exams).filter(Boolean).map(e=>normT(e.corso)));
+  S.lez.forEach(l=>{const k=subj(l.c);if(!/a scelta/i.test(k)&&!have.has(normT(k)))m.set(normT(k),k);});
+  return [...m.values()].sort((a,b)=>nm(a).localeCompare(nm(b),'it'));
+}
 const nextApp=e=>(e.appelli||[]).filter(a=>a.d>=T.date).sort((a,b)=>(a.d+(a.h||'')).localeCompare(b.d+(b.h||'')))[0]||null;
 function career(){
   const ok=exList().filter(e=>e.stato==='superato');
@@ -1411,7 +1420,7 @@ function render(){
   renderNav();
   $('#top').innerHTML=topHTML();
   $('#view').innerHTML=S.mode==='loading'||S.mode==='wait'?'<div class="empty">Carico i tuoi dati…</div>':V[S.tab]();
-  const dl=[...new Set([...S.lez.map(l=>ckey(l.c)),...exList().map(e=>e.corso)])].sort();
+  const dl=[...new Set([...S.lez.map(l=>ckey(l.c)),...Object.values(S.exams).filter(Boolean).map(e=>e.corso)])].sort();
   $('#sheet-root').querySelector('#dl-corsi')||$('#sheet-root').insertAdjacentHTML('beforeend','<datalist id="dl-corsi"></datalist>');
   $('#dl-corsi').innerHTML=dl.map(x=>`<option value="${esc(x)}">`).join('');
   document.querySelectorAll('textarea[data-in]').forEach(autosize);
@@ -1529,11 +1538,15 @@ const A={
   'ex-open':el=>{S.tab='esami';S.exId=el.dataset.id;S.exTab='info';S.rip=null;render();window.scrollTo(0,0);},
   'ex-back':()=>{S.exId=null;S.rip=null;render();},
   'ex-tab':el=>{S.exTab=el.dataset.v;S.rip=null;render();},
-  'ex-new':()=>sheet({title:'Nuovo esame',fields:[{k:'corso',l:'Insegnamento',req:1,list:'dl-corsi'},{k:'cfu',l:'CFU',t:'number',min:0,max:60,v:6},{k:'d',l:'Data del primo appello (facoltativa)',t:'date'},{k:'h',l:'Ora',t:'time'},{k:'aula',l:'Aula'}],submit:'Aggiungi',
-    onSubmit:v=>{if(!v.corso.trim()){toast("Scrivi il nome dell'insegnamento");return false;}
-      const e={id:rid(),corso:v.corso.trim(),cfu:+v.cfu||0,stato:'da_fare',appelli:[],argomenti:[],domande:[],note:[]};
-      if(v.d)e.appelli.push({i:rid(),d:v.d,h:v.h,aula:v.aula,p:false});
-      S.exams[e.id]=e;saveEx(e);S.tab='esami';S.exId=e.id;S.exTab='info';render();}}),
+  'ex-new':()=>{const av=exAvail();sheet({title:'Aggiungi esame',intro:'Scegli una materia dell\'elenco oppure scrivi il nome di un insegnamento di qualsiasi anno.',
+    fields:[{k:'sel',l:'Materia disponibile',t:'select',v:'',o:[['',av.length?'Scegli dall\'elenco…':'Nessuna materia disponibile']].concat(av.map(n=>[n,nm(n)]))},{k:'corso',l:'Oppure scrivi un altro insegnamento',list:'dl-corsi'},{k:'anno',l:'Anno del corso',t:'select',v:'',o:[['','Automatico'],['1','1° anno'],['2','2° anno'],['3','3° anno']]},{k:'cfu',l:'CFU',t:'number',min:0,max:60,v:''},{k:'d',l:'Data del primo appello (facoltativa)',t:'date'},{k:'h',l:'Ora',t:'time'},{k:'aula',l:'Aula'}],submit:'Aggiungi',
+    onSubmit:v=>{const nome=(v.corso||'').trim()||v.sel;if(!nome){toast('Scegli una materia o scrivi il nome');return false;}
+      const k=normT(nome);let e=Object.values(S.exams).filter(Boolean).find(x=>normT(x.corso)===k);
+      if(e&&!exHid(e)){toast('Questo esame c\'è già: lo apro');S.tab='esami';S.exId=e.id;S.exTab='info';render();return;}
+      if(!e){e={id:rid(),corso:nome,cfu:0,stato:'da_fare',appelli:[],argomenti:[],domande:[],note:[]};S.exams[e.id]=e;}
+      e.auto=false;if(+v.cfu)e.cfu=+v.cfu;if(v.anno)e.anno=+v.anno;
+      if(v.d)(e.appelli=e.appelli||[]).push({i:rid(),d:v.d,h:v.h,aula:v.aula,p:false});
+      saveEx(e);S.tab='esami';S.esub='da_fare';S.exId=e.id;S.exTab='info';render();toast('Esame aggiunto');}});},
   'ex-del':el=>{if(!arm(el))return;const id=el.dataset.id;delete S.exams[id];S.todo=S.todo.filter(t=>t.ex!==id);persist('ex-'+id,50);persist('todo');S.exId=null;render();toast('Esame eliminato');},
   'app-add':el=>{const e=S.exams[el.dataset.id];sheet({title:'Nuovo appello',fields:[{k:'d',l:'Data',t:'date',req:1},{k:'h',l:'Ora',t:'time'},{k:'aula',l:'Aula'}],submit:'Aggiungi',onSubmit:v=>{if(!v.d){toast('Scegli una data');return false;}(e.appelli=e.appelli||[]).push({i:rid(),d:v.d,h:v.h,aula:v.aula,p:false});saveEx(e);render();}});},
   'app-edit':el=>{const e=S.exams[el.dataset.id],a=(e.appelli||[]).find(x=>x.i===el.dataset.i);if(!a)return;sheet({title:'Modifica appello',fields:[{k:'d',l:'Data',t:'date',v:a.d,req:1},{k:'h',l:'Ora',t:'time',v:a.h||''},{k:'aula',l:'Aula',v:a.aula||''}],submit:'Salva',onSubmit:v=>{if(!v.d){toast('Scegli una data');return false;}a.d=v.d;a.h=v.h;a.aula=v.aula;saveEx(e);render();toast('Appello aggiornato');}});},
