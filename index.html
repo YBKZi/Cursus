@@ -309,6 +309,8 @@ button:not(:disabled){cursor:pointer}
 .prs:not(.pri):not([aria-pressed=true]):not([aria-current=page]):not([data-t=studio]){box-shadow:inset 0 0 0 99px var(--hov)}
 .prs.pri,.prs[aria-pressed=true],.prs[aria-current=page],.prs[data-t=studio]{filter:brightness(.93)}
 html body .nt,html body .nt::after{transition:none!important}
+nav button[data-t=studio].push{animation:none!important;transform:scale(.8);transition:transform .1s ease-out!important}
+@media(min-width:820px){nav button[data-t=studio].push{transform:none}}
 </style>
 </head>
 <body>
@@ -1969,6 +1971,14 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
 document.addEventListener('pointerdown',e=>{document.documentElement.classList.toggle('touch',e.pointerType!=='mouse');},{capture:true,passive:true});
 document.addEventListener('mousemove',e=>{if(e.movementX||e.movementY)document.documentElement.classList.remove('touch');},{passive:true});
 window.__RT={};
+(function(){
+  let b=null;
+  const off=()=>{if(b){b.classList.remove('push');b=null;}};
+  document.addEventListener('pointerdown',e=>{off();const x=e.target.closest&&e.target.closest('nav button[data-t=studio]');if(x&&e.button<=0){b=x;x.classList.add('push');}},{passive:true,capture:true});
+  document.addEventListener('pointermove',e=>{if(b&&!inBox(b,e))off();},{passive:true});
+  document.addEventListener('pointercancel',off);
+  document.addEventListener('pointerup',()=>{if(!b)return;const x=b;b=null;x.classList.remove('push','pop');void x.offsetWidth;x.classList.add('pop');clearTimeout(x._pt);x._pt=setTimeout(()=>x.classList.remove('pop'),700);},true);
+})();
 (function(){const r=render;render=function(){const t=performance.now(),tab=S.tab;r();window.__RT[tab]=performance.now()-t;};})();
 addEventListener('pagehide',()=>{if(_sc)flushCache();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&_sc)flushCache();});
