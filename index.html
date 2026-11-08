@@ -1879,10 +1879,7 @@ document.addEventListener('pointerup',e=>{const p=_lpm.get(e.pointerId);_lpm.del
   const cm=new Map();
   document.addEventListener('pointerdown',e=>{cm.delete(e.pointerId);const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
     if(e.pointerType==='mouse'){S.pd=Date.now();S.pdEl=el;el._pd=Date.now();
-      /* Studio: il rimbalzo parte prima, e il cambio schermata subito dopo (il ridisegno non blocca piu' l'inizio dell'animazione) */
-      if(el.dataset.t==='studio'&&el.getAttribute('aria-current')!=='page'){el.style.setProperty('--s0','.85');el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove('pop'),700);requestAnimationFrame(()=>requestAnimationFrame(()=>A.tab(el)));}
-      else A.tab(el);
-      return;}
+      A.tab(el);return;}
     cm.set(e.pointerId,{el,sx:e.clientX,sy:e.clientY});});
   document.addEventListener('pointermove',e=>{const c=cm.get(e.pointerId);if(c&&(Math.abs(e.clientX-c.sx)>16||Math.abs(e.clientY-c.sy)>16||!inBox(c.el,e))){tipOff();cm.delete(e.pointerId);}},{passive:true});
   document.addEventListener('pointercancel',e=>{tipOff();cm.delete(e.pointerId);});
@@ -2167,7 +2164,7 @@ window.__RT={};
 (function(){
   let b=null;
   const off=()=>{if(b){const x=b;b=null;x.classList.remove('push');x.classList.add('unpush');setTimeout(()=>x.classList.remove('unpush'),200);}};
-  document.addEventListener('pointerdown',e=>{off();const x=e.target.closest&&e.target.closest('nav button[data-t=studio]');if(x&&e.button<=0&&e.pointerType!=='mouse'&&x.getAttribute('aria-current')!=='page'){b=x;x.classList.add('push');}},{passive:true,capture:true});
+  document.addEventListener('pointerdown',e=>{off();const x=e.target.closest&&e.target.closest('nav button[data-t=studio]');if(x&&e.button<=0&&x.getAttribute('aria-current')!=='page'){b=x;x.classList.add('push');}},{passive:true,capture:true});
   document.addEventListener('pointermove',e=>{if(b&&!inBox(b,e))off();},{passive:true});
   document.addEventListener('pointercancel',off);
   document.addEventListener('pointerup',()=>{if(!b)return;const x=b;b=null;{const tm=getComputedStyle(x).transform;const mm=/matrix\(([-\d.e]+)/.exec(tm);x.style.setProperty('--s0',mm?Math.max(.85,Math.min(1,+mm[1])).toFixed(3):'.85');}x.classList.remove('push','unpush','pop');void x.offsetWidth;x.classList.add('pop');clearTimeout(x._pt);x._pt=setTimeout(()=>x.classList.remove('pop'),700);},true);
