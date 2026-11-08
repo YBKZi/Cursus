@@ -1517,7 +1517,7 @@ function perSheet(p){
 }
 function setMonth(ym){ym=clampYM(ym);S.cm=ym;S.cd=ym===T.date.slice(0,7)?T.date:ym+'-01';render();}
 const A={
-  tab:el=>{if(el.dataset.t==='studio'&&S.tab==='studio'&&!S.qz&&!S.fc&&el.isConnected){window.scrollTo(0,0);return;}S.tab=el.dataset.t;if(S.tab!=='esami'){S.exId=null;S.rip=null;}if(S.tab==='studio'){S.qz=null;S.fc=null;S.pop=true;try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}}renderNav();S.pop=false;const k=++_tabK;requestAnimationFrame(()=>setTimeout(()=>{if(k!==_tabK)return;render();window.scrollTo(0,0);},0));},
+  tab:el=>{if(el.dataset.t==='studio'&&S.tab==='studio'&&!S.qz&&!S.fc&&el.isConnected){window.scrollTo(0,0);return;}S.tab=el.dataset.t;if(S.tab!=='esami'){S.exId=null;S.rip=null;}if(S.tab==='studio'){S.qz=null;S.fc=null;S.pop=true;try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}}renderNav();S.pop=false;++_tabK;render();window.scrollTo(0,0);},
   lsub:el=>{S.lsub=el.dataset.v;render();},
   cview:el=>{S.cv=el.dataset.v==='anno'?'anno':'mese';if(S.cv==='anno')S.cy=clampAA(aaOf(S.cd));render();},
   'cy-prev':()=>setYear(+S.cy-1),'cy-next':()=>setYear(+S.cy+1),
@@ -1939,7 +1939,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
   document.addEventListener('pointerup',e=>{
     if(!cur)return;clearTimeout(pt);const el=cur;cur=null;prev=null;
     if(!el.isConnected||!inBox(el,e))return;
-    paint(el);t0=Date.now();requestAnimationFrame(()=>setTimeout(()=>{if(el.isConnected)A['st-pick'](el);},0));
+    paint(el);t0=Date.now();A['st-pick'](el);
   });
   window.addEventListener('click',e=>{
     const el=e.target.closest&&e.target.closest(sel);
@@ -1957,7 +1957,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
     const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e)||el.getAttribute('aria-pressed')==='true')return;
     [...el.parentNode.children].forEach(x=>{if(x.hasAttribute('aria-pressed'))x.setAttribute('aria-pressed',x===el?'true':'false');});
     t0=Date.now();
-    requestAnimationFrame(()=>setTimeout(()=>{if(el.isConnected)el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));},0));
+    el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
   });
   window.addEventListener('click',e=>{if(e.isTrusted&&Date.now()-t0<900&&e.target.closest&&e.target.closest(sel)){e.stopPropagation();e.preventDefault();}},true);
 })();
