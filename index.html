@@ -308,6 +308,7 @@ button:not(:disabled){cursor:pointer}
 .prs{transition:box-shadow .14s ease-out,filter .14s ease-out!important}.prs-out{transition:box-shadow .14s ease-out,filter .14s ease-out!important}
 .prs:not(.pri):not([aria-pressed=true]):not([aria-current=page]):not([data-t=studio]){box-shadow:inset 0 0 0 99px var(--hov)}
 .prs.pri,.prs[aria-pressed=true],.prs[aria-current=page],.prs[data-t=studio]{filter:brightness(.93)}
+html body .nt,html body .nt::after{transition:none!important}
 </style>
 </head>
 <body>
@@ -1978,7 +1979,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&_sc)flushC
   document.addEventListener('pointerdown',e=>{if(el)fade();if(e.pointerType==='mouse'||e.button>0)return;const t=e.target.closest&&e.target.closest(sel);if(t&&!t.disabled){el=t;t.classList.add('prs');}},{passive:true});
   document.addEventListener('pointermove',e=>{if(el&&!inBox(el,e))fade();},{passive:true});
   document.addEventListener('pointercancel',fade);
-  document.addEventListener('pointerup',()=>{if(el){el.classList.remove('prs','prs-out');el=null;}},true);
+  document.addEventListener('pointerup',()=>{if(el){const x=el;el=null;x.classList.remove('prs','prs-out');x.classList.add('nt');requestAnimationFrame(()=>requestAnimationFrame(()=>x.classList.remove('nt')));}},true);
 })();
 try{const t=localStorage.getItem('study.tab');if(t&&TABS.some(x=>x[0]===t))S.tab=t;}catch(_){}
 render();banner();boot();
