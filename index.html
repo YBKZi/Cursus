@@ -1853,6 +1853,22 @@ document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||!p.
   document.addEventListener('pointerup',e=>{const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e))return;S.pd=Date.now();S.pdEl=el;tipOff();A.tab(el);});
 })();
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='tab'&&el.closest('nav')&&S.pd&&S.pdEl===el&&Date.now()-S.pd<900){S.pd=0;return;}const f=A[el.dataset.a];if(f){if(el.dataset.arm&&!arm(el))return;f(el,e);}});
+/* mouse/trackpad: l'azione parte alla pressione, non al rilascio, cosi' anche il tap sul trackpad risponde subito. Il click nativo che segue viene scartato */
+(function(){
+  let el=null,t0=0;
+  document.addEventListener('pointerdown',e=>{
+    if(e.pointerType!=='mouse'||e.button!==0)return;
+    const b=e.target.closest&&e.target.closest('[data-a]');
+    if(!b||b.disabled||b.dataset.a==='tab'||b.matches('a[href],input,select,textarea,label,summary,[data-in],.chip[data-a="st-pick"]')||b.closest('summary,label'))return;
+    el=b;t0=performance.now();b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+  },true);
+  window.addEventListener('click',e=>{
+    if(!el||!e.isTrusted)return;
+    const b=e.target.closest&&e.target.closest('[data-a]');
+    if(performance.now()-t0<800&&(b===el||!el.isConnected)){e.stopPropagation();e.preventDefault();}
+    el=null;
+  },true);
+})();
 function handleForm(f){
   const x=ex(),fd=new FormData(f);
   if(!x)return;
