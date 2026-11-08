@@ -1978,7 +1978,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&_sc)flushC
   document.addEventListener('pointerdown',e=>{if(el)fade();if(e.pointerType==='mouse'||e.button>0)return;const t=e.target.closest&&e.target.closest(sel);if(t&&!t.disabled){el=t;t.classList.add('prs');}},{passive:true});
   document.addEventListener('pointermove',e=>{if(el&&!inBox(el,e))fade();},{passive:true});
   document.addEventListener('pointercancel',fade);
-  document.addEventListener('pointerup',()=>{if(el){el.classList.remove('prs');el=null;}});
+  document.addEventListener('pointerup',()=>{if(el){el.classList.remove('prs','prs-out');el=null;}},true);
 })();
 try{const t=localStorage.getItem('study.tab');if(t&&TABS.some(x=>x[0]===t))S.tab=t;}catch(_){}
 render();banner();boot();
