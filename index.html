@@ -1440,18 +1440,34 @@ document.addEventListener('pointerdown',e=>{lastPt=e.pointerType||'mouse';if(las
 document.addEventListener('pointerover',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;lastPt=e.pointerType||'mouse';const b=navBtn(e);tipClear(b);if(b)b.classList.add('tip');},true);
 document.addEventListener('pointerout',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;const b=navBtn(e);if(b&&!(e.relatedTarget&&b.contains(e.relatedTarget)))b.classList.remove('tip');},true);
 window.addEventListener('scroll',()=>{if((lastPt==='touch'||lastPt==='pen')&&performance.now()-_tipT>600)tipClear(null);},{passive:true,capture:true});
+const PANES=['calendario','lezioni','studio','esami','analisi'],PN={};
+let _pre=0;
+const uiSig=()=>JSON.stringify([S.mode,S.asub,S.openC,S.lsub,S.lcorso,S.lrange,S.lim,S.openL,S.esub,S.exId,S.exTab,S.rip,S.stId,S.stTab,S.stAll,S.stCat,S.qz,S.fc,S.pending,S.cv,S.cm,S.cd]);
+function ensurePanes(){const v=$('#view');if(!v.querySelector(':scope>.pane')){v.innerHTML=PANES.map(t=>`<div class="pane" data-pane="${t}" style="display:none"></div>`).join('')+'<div class="pane-msg" style="display:none"></div>';for(const t of PANES)PN[t]=null;}return v;}
+function showPane(t){$('#view').querySelectorAll(':scope>.pane').forEach(p=>{p.style.display=p.dataset.pane===t?'contents':'none';});}
+function paneOf(t){return $('#view').querySelector(':scope>.pane[data-pane="'+t+'"]');}
+function fastTab(){const n=PN[S.tab];if(!n||S.mode==='loading'||S.mode==='wait'||performance.now()-n.at>60000||n.sig!==uiSig())return false;const p=paneOf(S.tab);if(!p)return false;
+  T=nowRome();try{localStorage.setItem('study.tab',S.tab);}catch(_){}
+  $('#top').innerHTML=topHTML();showPane(S.tab);p.querySelectorAll('textarea[data-in]').forEach(autosize);placeRunner();return true;}
+function schedulePre(){clearTimeout(_pre);_pre=setTimeout(preNext,120);}
+function preNext(){if(document.hidden||S.mode==='loading'||S.mode==='wait')return;const a=document.activeElement;if(a&&a.matches&&a.matches('#view input,#view textarea'))return;
+  const t=PANES.find(x=>x!==S.tab&&!PN[x]);if(!t)return;const p=paneOf(t);if(!p)return;
+  try{p.innerHTML=V[t]();PN[t]={sig:uiSig(),at:performance.now()};}catch(e){p.innerHTML='';PN[t]={sig:'x',at:0};}
+  _pre=setTimeout(preNext,30);}
 function render(){
   T=nowRome();
   try{localStorage.setItem('study.tab',S.tab);}catch(_){}
   renderNav();
   $('#top').innerHTML=topHTML();
-  $('#view').innerHTML=S.mode==='loading'||S.mode==='wait'?'<div class="empty">Carico i tuoi dati…</div>':V[S.tab]();
+  const vw=ensurePanes(),msg=vw.querySelector(':scope>.pane-msg');
+  if(S.mode==='loading'||S.mode==='wait'){showPane('');msg.style.display='contents';msg.innerHTML='<div class="empty">Carico i tuoi dati…</div>';for(const t of PANES)PN[t]=null;}
+  else{msg.style.display='none';msg.innerHTML='';const pn=paneOf(S.tab);pn.innerHTML=V[S.tab]();showPane(S.tab);for(const t of PANES)PN[t]=null;PN[S.tab]={sig:uiSig(),at:performance.now()};}
   const dl=[...new Set([...S.lez.map(l=>ckey(l.c)),...Object.values(S.exams).filter(Boolean).map(e=>e.corso)])].sort();
   $('#sheet-root').querySelector('#dl-corsi')||$('#sheet-root').insertAdjacentHTML('beforeend','<datalist id="dl-corsi"></datalist>');
   $('#dl-corsi').innerHTML=dl.map(x=>`<option value="${esc(x)}">`).join('');
-  document.querySelectorAll('textarea[data-in]').forEach(autosize);
+  document.querySelectorAll('#view>.pane[style*="contents"] textarea[data-in]').forEach(autosize);
   placeRunner();
-  S.pop=false;
+  S.pop=false;schedulePre();
 }
 let defer=false;
 function rerender(){
@@ -1526,7 +1542,7 @@ function perSheet(p){
 }
 function setMonth(ym){ym=clampYM(ym);S.cm=ym;S.cd=ym===T.date.slice(0,7)?T.date:ym+'-01';render();}
 const A={
-  tab:el=>{if(el.dataset.t==='studio'&&S.tab==='studio'&&!S.qz&&!S.fc&&el.isConnected){window.scrollTo(0,0);return;}S.tab=el.dataset.t;if(S.tab!=='esami'){S.exId=null;S.rip=null;}if(S.tab==='studio'){S.qz=null;S.fc=null;S.pop=true;try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}}renderNav();S.pop=false;const k=++_tabK;if((window.__RT[S.tab]||0)>25)requestAnimationFrame(()=>setTimeout(()=>{if(k!==_tabK)return;render();window.scrollTo(0,0);},0));else{render();window.scrollTo(0,0);}},
+  tab:el=>{if(el.dataset.t==='studio'&&S.tab==='studio'&&!S.qz&&!S.fc&&el.isConnected){window.scrollTo(0,0);return;}S.tab=el.dataset.t;if(S.tab!=='esami'){S.exId=null;S.rip=null;}if(S.tab==='studio'){S.qz=null;S.fc=null;S.pop=true;try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}}renderNav();S.pop=false;const k=++_tabK;if(fastTab()){window.scrollTo(0,0);}else if((window.__RT[S.tab]||0)>25)requestAnimationFrame(()=>setTimeout(()=>{if(k!==_tabK)return;render();window.scrollTo(0,0);},0));else{render();window.scrollTo(0,0);}},
   lsub:el=>{S.lsub=el.dataset.v;render();},
   cview:el=>{S.cv=el.dataset.v==='anno'?'anno':'mese';if(S.cv==='anno')S.cy=clampAA(aaOf(S.cd));render();},
   'cy-prev':()=>setYear(+S.cy-1),'cy-next':()=>setYear(+S.cy+1),
