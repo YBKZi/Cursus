@@ -829,7 +829,7 @@ function marzoHTML(soon){
 
 /* ====================== studio ====================== */
 const STABS=[['piano','Piano'],['materiale','Materiale'],['schede','Schede'],['quiz','Quiz'],['flash','Flashcard'],['trappole','Trappole']];
-function stu(e){if(!e.studio)e.studio={sch:[],qz:[],fc:[],tr:[],mat:[],pd:{},qs:{},sims:[]};const s=e.studio;['sch','qz','fc','tr','mat','sims','lnk'].forEach(k=>{if(!s[k])s[k]=[];});if(!s.pd)s.pd={};if(!s.qs)s.qs={};if(!s.os)s.os={};if(!s.fmt)s.fmt={};return s;}
+function stu(e){if(!e.studio)e.studio={sch:[],qz:[],fc:[],tr:[],mat:[],pd:{},qs:{},sims:[]};const s=e.studio;['sch','qz','fc','tr','mat','sims'].forEach(k=>{if(!s[k])s[k]=[];});if(!s.pd)s.pd={};if(!s.qs)s.qs={};if(!s.os)s.os={};if(!s.fmt)s.fmt={};return s;}
 const sx=()=>S.exams[S.stId];
 const fmtOf=e=>(e.studio&&e.studio.fmt)||{};
 const isOrale=e=>fmtOf(e).tipo==='orale';
@@ -960,9 +960,8 @@ function stPiano(e,s){
 function stMateriale(e,s){
   const cnt=[['Schede',s.sch.length],['Quiz',s.qz.length],['Flashcard',s.fc.length],['Trappole',s.tr.length]];
   let h=`<section class="card stack"><h2>Il tuo materiale</h2><div class="stats3" style="grid-template-columns:repeat(4,minmax(0,1fr))">${cnt.map(([l,n])=>`<div><small>${l}</small><span class="num">${n}</span></div>`).join('')}</div>
-  <div class="row wrap"><button class="btn pri" data-a="st-file">Carica file</button><button class="btn" data-a="st-link">Da link</button><button class="btn" data-a="st-paste">Incolla testo</button><button class="btn" data-a="st-gen" ${s.mat.length?'':'disabled'}>Genera con Claude</button></div>
+  <div class="row wrap"><button class="btn pri" data-a="st-file">Carica file</button><button class="btn" data-a="st-paste">Incolla testo</button><button class="btn" data-a="st-gen" ${s.mat.length?'':'disabled'}>Genera con Claude</button></div>
   <small>Carica un pacchetto .json oppure appunti in .txt o .md: i testi restano qui e da lì puoi generare schede, quiz e flashcard. Per i PDF incolla il testo, oppure mandameli in chat e preparo il pacchetto.</small></section>`;
-  if(s.lnk.length)h+=`<section class="card stack"><h2>PDF da link</h2>${s.lnk.map(m=>`<div class="row"><span style="flex:1;min-width:0"><b>${esc(m.t)}</b><br><small>${esc((m.u.replace(/^https?:\/\//,'').split('/')[0]))}</small></span><a class="btn sm pri" href="${esc(m.u)}" target="_blank" rel="noopener">Apri</a><button class="btn sm" data-a="st-lnkdel" data-i="${m.i}" aria-label="Elimina">✕</button></div>`).join('')}</section>`;
   if(s.mat.length)h+=`<section class="card stack"><h2>Testi caricati</h2>${s.mat.map(m=>`<div class="row"><span style="flex:1;min-width:0"><b>${esc(m.t)}</b><br><small>${m.x.length.toLocaleString('it-IT')} caratteri</small></span><button class="btn sm" data-a="st-matdel" data-i="${m.i}" aria-label="Elimina">✕</button></div>`).join('')}</section>`;
   return h;
 }
@@ -1561,11 +1560,6 @@ const A={
   'st-all':()=>{S.stAll=!S.stAll;render();},
   'st-go':el=>{const v=el.dataset.v;S.stTab=v==='sch'?'schede':v==='flash'?'flash':'quiz';S.stCat=el.dataset.c||'';render();if(v==='sim')A['qz-start']({dataset:{m:'sim'}});window.scrollTo(0,0);},
   'st-file':()=>$('#file-pack').click(),
-  'st-link':()=>{const e=sx();sheet({title:'Aggiungi PDF da link',intro:'Incolla il link SharePoint o OneDrive del PDF: resta salvato in questa materia e si apre con un tocco.',fields:[{k:'u',l:'Link',req:1,ph:'https://…sharepoint.com/…'},{k:'t',l:'Titolo (facoltativo)'}],submit:'Aggiungi',
-    onSubmit:v=>{const u=String(v.u||'').trim();if(!/^https:\/\/[^\s]+$/i.test(u)){toast('Serve un link che inizia con https://');return false;}
-      let t=String(v.t||'').trim();if(!t){try{const seg=decodeURIComponent(new URL(u).pathname.split('/').filter(Boolean).pop()||'');t=/\.pdf$/i.test(seg)?seg.replace(/\.pdf$/i,''):'PDF';}catch(_){t='PDF';}}
-      stu(e).lnk.push({i:rid(),t,u});saveEx(e);render();toast('Link aggiunto');}});},
-  'st-lnkdel':el=>{const e=sx();e.studio.lnk=(e.studio.lnk||[]).filter(m=>m.i!==el.dataset.i);saveEx(e);render();},
   'st-paste':()=>{const e=sx();sheet({title:'Incolla testo',intro:'Appunti, dispense o un pacchetto JSON gi\u00e0 pronto.',fields:[{k:'t',l:'Titolo (facoltativo)'}],html:'<label class="fld"><span>Testo</span><textarea name="x" class="inp" rows="8"></textarea></label>',submit:'Aggiungi',
     onSubmit:v=>{const x=document.querySelector('#sheet textarea[name=x]').value,d=packFromText(x);if(!x.trim()){toast('Incolla qualcosa');return false;}
       if(d){const n=importPack(e,d);saveEx(e);render();toast(n?n+' elementi importati':'Niente di nuovo');}else{addMat(e,(v.t||'Appunti').trim(),x);saveEx(e);render();toast('Testo aggiunto: ora puoi generare i contenuti');}}});},
