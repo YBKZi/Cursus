@@ -838,7 +838,7 @@ function marzoHTML(soon){
 
 /* ====================== studio ====================== */
 const STABS=[['piano','Piano'],['materiale','Materiale'],['schede','Schede'],['quiz','Quiz'],['flash','Flashcard'],['trappole','Trappole']];
-function stu(e){if(!e.studio)e.studio={sch:[],qz:[],fc:[],tr:[],mat:[],pd:{},qs:{},sims:[]};const s=e.studio;['sch','qz','fc','tr','mat','sims'].forEach(k=>{if(!s[k])s[k]=[];});if(!s.pd)s.pd={};if(!s.qs)s.qs={};if(!s.os)s.os={};if(!s.fmt)s.fmt={};if(MODMAP[e.modalita])s.fmt.tipo=MODMAP[e.modalita];else if(!e.modalita&&s.fmt.tipo&&MODINV[s.fmt.tipo])e.modalita=MODINV[s.fmt.tipo];return s;}
+function stu(e){if(!e.studio)e.studio={sch:[],qz:[],fc:[],tr:[],mat:[],pd:{},qs:{},sims:[]};const s=e.studio;['sch','qz','fc','tr','mat','sims'].forEach(k=>{if(!s[k])s[k]=[];});if(!s.pd)s.pd={};if(!s.qs)s.qs={};if(!s.os)s.os={};if(!s.fmt)s.fmt={};if(e.modalita===undefined){if(s.fmt.tipo&&MODINV[s.fmt.tipo])e.modalita=MODINV[s.fmt.tipo];}else s.fmt.tipo=MODMAP[e.modalita]||'';return s;}
 const sx=()=>S.exams[S.stId];
 const MODMAP={'Scritto':'scritto','Orale':'orale','Scritto + orale':'misto'},MODINV={scritto:'Scritto',orale:'Orale',misto:'Scritto + orale'};
 const fmtOf=e=>(e.studio&&e.studio.fmt)||{};
@@ -951,7 +951,7 @@ V.studio=()=>{
   const tab=S.stTab||(has?'piano':'materiale');
   let h=`<div class="chips">${list.map(x=>`<button class="chip" data-a="st-pick" data-id="${x.id}" aria-pressed="${x.id===S.stId}">${esc(nm(x.corso))}</button>`).join('')}</div>`;
   h+=heroCard(e,false);
-  {const f=s.fmt,sm=fmtSum(f)||e.modalita||'';h+=`<section class="card"><div class="row sp"><span style="min-width:0"><small class="eyebrow">Tipo di esame</small><div>${sm?esc(sm):'<span class="muted">Impostalo nella scheda dell\'esame: lo studio si adatta.</span>'}</div></span><button class="btn sm ${sm?'':'pri'}" data-a="ex-open" data-id="${e.id}">${sm?'Modifica':'Imposta'}</button></div></section>`;}
+  {const f=s.fmt;let sm=fmtSum(f);if(e.modalita&&!MODMAP[e.modalita])sm=sm?e.modalita+' · '+sm:e.modalita;sm=sm||'';h+=`<section class="card"><div class="row sp"><span style="min-width:0"><small class="eyebrow">Tipo di esame</small><div>${sm?esc(sm):'<span class="muted">Impostalo nella scheda dell\'esame: lo studio si adatta.</span>'}</div></span><button class="btn sm ${sm?'':'pri'}" data-a="ex-open" data-id="${e.id}">${sm?'Modifica':'Imposta'}</button></div></section>`;}
   h+=`<div class="seg">${STABS.map(([v,l])=>`<button data-a="st-tab" data-v="${v}" aria-pressed="${tab===v}">${l}</button>`).join('')}</div>`;
   return h+({piano:stPiano,materiale:stMateriale,schede:stSchede,quiz:stQuiz,flash:stFlash,trappole:stTrappole}[tab])(e,s);
 };
