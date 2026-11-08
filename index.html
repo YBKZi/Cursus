@@ -1446,20 +1446,20 @@ function dayList(M){
   it.sort((a,b)=>a.s.localeCompare(b.s));
   return `<section class="card"><div class="row sp"><h2>${fDS(S.cd)}</h2><small>${rel(S.cd)}</small></div>${pp?`<p style="margin:0 0 6px"><span class="pill ${pp.k==='ses'?'warn':'ok'}">${esc(pp.n)}</span></p>`:''}${it.length?`<div>${it.map(i=>i.h).join('')}</div>${x.l.length?`<div class="row" style="margin-top:8px"><button class="btn sm" data-a="dayskip" data-d="${S.cd}">Salto tutta la giornata</button></div>`:''}`:'<p class="muted" style="margin:6px 0 0">Nessun impegno.</p>'}</section>`;
 }
-V.calendario=()=>{
-  if(S.cv!=='anno')S.cv='mese';
+V.calendario=()=>{if(S.cv!=='anno')S.cv='mese';return calView(S.cv);};
+function calView(cv){
   S.cy=clampAA(+S.cy||aaOf(T.date));
   S.cm=clampYM(/^\d{4}-\d{2}$/.test(S.cm)?S.cm:T.date.slice(0,7));
-  const seg=`<div class="seg"><button data-a="cview" data-v="mese" aria-pressed="${S.cv==='mese'}">Mensile</button><button data-a="cview" data-v="anno" aria-pressed="${S.cv==='anno'}">Stagionale</button></div>`;
+  const seg=`<div class="seg"><button data-a="cview" data-v="mese" aria-pressed="${cv==='mese'}">Mensile</button><button data-a="cview" data-v="anno" aria-pressed="${cv==='anno'}">Stagionale</button></div>`;
   const nav=(t,p,n,td,dp,dn)=>`<div class="cbar"><h2>${t}</h2><div class="row"><button class="btn sm" data-a="${td}">Oggi</button><button class="ibtn" data-a="${p}" aria-label="Precedente" ${dp?'disabled':''}>${chevron('l')}</button><button class="ibtn" data-a="${n}" aria-label="Successivo" ${dn?'disabled':''}>${chevron('r')}</button></div></div>`;
   const pad='style="padding-top:calc(14px + env(safe-area-inset-top))"';
-  if(S.cv==='anno'){
+  if(cv==='anno'){
     const aa=+S.cy,a=aa+'-09-01',b=(aa+1)+'-08-31',M=dayMap(a,b);
     return `<section class="stack" ${pad}>${nav(aaLabel(aa),'cy-prev','cy-next','cy-today',aa<=AA_MIN,aa>=AA_MAX)}${seg}</section><div class="cols"><section class="stack">${yearView(aa,M)}</section><div class="stack">${dayList(M)}${periodsCard(a,b,'Vacanze e sessioni')}</div></div>`;
   }
   const ym=S.cm,R=calRange(ym),M=dayMap(R.a,R.b);
   return `<section class="stack" ${pad}>${nav(MM[+ym.slice(5)-1]+' '+ym.slice(0,4),'cm-prev','cm-next','cm-today',ym<=CAL_MIN,ym>=CAL_MAX)}${seg}</section><section class="stack" style="margin-top:10px">${monthGrid(R,M,ym)}</section><div class="stack" style="margin-top:12px">${dayList(M)}${periodsCard(R.first,addDays(R.first,R.n-1),'Vacanze e sessioni del mese')}</div>`;
-};
+}
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target&&e.target.matches&&e.target.matches('path[data-a]')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
 
 /* ====================== OneDrive ====================== */
@@ -1527,19 +1527,29 @@ document.addEventListener('pointercancel',tipOff,true);
 document.addEventListener('pointerover',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;lastPt=e.pointerType||'mouse';const b=navBtn(e);tipClear(b);if(b)b.classList.add('tip');},true);
 document.addEventListener('pointerout',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;const b=navBtn(e);if(b&&!(e.relatedTarget&&b.contains(e.relatedTarget)))b.classList.remove('tip');},true);
 window.addEventListener('scroll',()=>{if((lastPt==='touch'||lastPt==='pen')&&performance.now()-_tipT>600)tipClear(null);},{passive:true,capture:true});
-const PANES=['calendario','lezioni','studio','esami','analisi'],PN={};
+const PANES=['cal-mese','cal-anno','lezioni','studio','esami','analisi'],PN={};
+/* il calendario ha due sezioni precalcolate (mensile e stagionale): il cambio vista è solo un cambio di visibilità */
+const pk=t=>t==='calendario'?(S.cv==='anno'?'cal-anno':'cal-mese'):t;
+const pv=k=>k==='cal-mese'?()=>calView('mese'):k==='cal-anno'?()=>calView('anno'):V[k];
 let _pre=0;
-const uiSig=()=>JSON.stringify([S.mode,S.asub,S.openC,S.lsub,S.lcorso,S.lrange,S.lim,S.openL,S.esub,S.exId,S.exTab,S.rip,S.stId,S.stTab,S.stAll,S.stCat,S.qz,S.fc,S.pending,S.cv,S.cm,S.cd]);
+const uiSig=k=>JSON.stringify([S.mode,S.asub,S.openC,S.lsub,S.lcorso,S.lrange,S.lim,S.openL,S.esub,S.exId,S.exTab,S.rip,S.stId,S.stTab,S.stAll,S.stCat,S.qz,S.fc,S.pending].concat(k==='cal-mese'?[S.cm,S.cd]:k==='cal-anno'?[S.cy,S.cd]:[]));
 function ensurePanes(){const v=$('#view');if(!v.querySelector(':scope>.pane')){v.innerHTML=PANES.map(t=>`<div class="pane" data-pane="${t}" style="display:none"></div>`).join('')+'<div class="pane-msg" style="display:none"></div>';for(const t of PANES)PN[t]=null;}return v;}
 function showPane(t){$('#view').querySelectorAll(':scope>.pane').forEach(p=>{p.style.display=p.dataset.pane===t?'contents':'none';});}
 function paneOf(t){return $('#view').querySelector(':scope>.pane[data-pane="'+t+'"]');}
-function fastTab(){const n=PN[S.tab];if(!n||S.mode==='loading'||S.mode==='wait'||performance.now()-n.at>60000||n.sig!==uiSig())return false;const p=paneOf(S.tab);if(!p)return false;
+function fastTab(){const k=pk(S.tab),n=PN[k];if(!n||S.mode==='loading'||S.mode==='wait'||performance.now()-n.at>60000||n.sig!==uiSig(k))return false;const p=paneOf(k);if(!p)return false;
   T=nowRome();try{localStorage.setItem('study.tab',S.tab);}catch(_){}
-  $('#top').innerHTML=topHTML();showPane(S.tab);p.querySelectorAll('textarea[data-in]').forEach(autosize);placeRunner();return true;}
+  $('#top').innerHTML=topHTML();showPane(k);p.querySelectorAll('textarea[data-in]').forEach(autosize);placeRunner();return true;}
+/* cambi di sola vista del calendario: aggiorna solo la sua sezione, senza toccare le altre */
+function calRender(){
+  const k=pk('calendario'),n=PN[k];
+  if(!(n&&S.mode!=='loading'&&S.mode!=='wait'&&performance.now()-n.at<60000&&n.sig===uiSig(k))){T=nowRome();paneOf(k).innerHTML=pv(k)();PN[k]={sig:uiSig(k),at:performance.now()};}
+  showPane(k);schedulePre();
+}
+const calGo=()=>S.tab==='calendario'&&S.mode!=='loading'&&S.mode!=='wait'&&$('#view>.pane')?calRender():render();
 function schedulePre(){clearTimeout(_pre);_pre=setTimeout(preNext,120);}
 function preNext(){if(document.hidden||S.mode==='loading'||S.mode==='wait')return;const a=document.activeElement;if(a&&a.matches&&a.matches('#view input,#view textarea'))return;
-  const t=PANES.find(x=>x!==S.tab&&!PN[x]);if(!t)return;const p=paneOf(t);if(!p)return;
-  try{p.innerHTML=V[t]();PN[t]={sig:uiSig(),at:performance.now()};}catch(e){p.innerHTML='';PN[t]={sig:'x',at:0};}
+  const cur=pk(S.tab),t=PANES.find(x=>x!==cur&&(!PN[x]||PN[x].sig!==uiSig(x)));if(!t)return;const p=paneOf(t);if(!p)return;
+  try{p.innerHTML=pv(t)();PN[t]={sig:uiSig(t),at:performance.now()};}catch(e){p.innerHTML='';PN[t]={sig:'x',at:0};}
   _pre=setTimeout(preNext,30);}
 function render(){
   T=nowRome();
@@ -1548,7 +1558,7 @@ function render(){
   $('#top').innerHTML=topHTML();
   const vw=ensurePanes(),msg=vw.querySelector(':scope>.pane-msg');
   if(S.mode==='loading'||S.mode==='wait'){showPane('');msg.style.display='contents';msg.innerHTML='<div class="empty">Carico i tuoi dati…</div>';for(const t of PANES)PN[t]=null;}
-  else{msg.style.display='none';msg.innerHTML='';const pn=paneOf(S.tab);pn.innerHTML=V[S.tab]();showPane(S.tab);for(const t of PANES)PN[t]=null;PN[S.tab]={sig:uiSig(),at:performance.now()};}
+  else{msg.style.display='none';msg.innerHTML='';const k=pk(S.tab),pn=paneOf(k);pn.innerHTML=pv(k)();showPane(k);for(const t of PANES)PN[t]=null;PN[k]={sig:uiSig(k),at:performance.now()};}
   const dl=[...new Set([...S.lez.map(l=>ckey(l.c)),...Object.values(S.exams).filter(Boolean).map(e=>e.corso)])].sort();
   $('#sheet-root').querySelector('#dl-corsi')||$('#sheet-root').insertAdjacentHTML('beforeend','<datalist id="dl-corsi"></datalist>');
   $('#dl-corsi').innerHTML=dl.map(x=>`<option value="${esc(x)}">`).join('');
@@ -1621,26 +1631,26 @@ function arm(el){
   return false;
 }
 function mark(u,s){if(s)S.seg[u]=s;else delete S.seg[u];persist('seg',250);}
-function setYear(y){y=clampAA(y);S.cy=y;S.cd=y===aaOf(T.date)?T.date:y+'-09-01';S.cm=clampYM(S.cd.slice(0,7));render();}
+function setYear(y){y=clampAA(y);S.cy=y;S.cd=y===aaOf(T.date)?T.date:y+'-09-01';S.cm=clampYM(S.cd.slice(0,7));calGo();}
 function perSheet(p){
   sheet({title:p?'Modifica periodo':'Vacanze o sessione',intro:p?'':'Segna un periodo: lo vedrai colorato nel calendario mensile e in quello stagionale.',fields:[{k:'k',l:'Tipo',t:'select',v:p?p.k:'ses',o:[['ses',"Sessione d'esami"],['vac','Vacanza']]},{k:'n',l:'Nome (facoltativo)',v:p?p.n:'',ph:'es. Sessione invernale, Vacanze di Natale'},{k:'a',l:'Dal',t:'date',v:p?p.a:S.cd,req:1},{k:'b',l:'Al (incluso)',t:'date',v:p?p.b:S.cd,req:1}],html:p?`<button type="button" class="btn bad" data-a="per-del" data-id="${p.i}">Elimina questo periodo</button>`:'',submit:'Salva',
     onSubmit:v=>{if(!v.a||!v.b){toast('Scegli le due date');return false;}let a=v.a,b=v.b;if(b<a)[a,b]=[b,a];const o={i:p?p.i:rid(),k:v.k==='vac'?'vac':'ses',n:String(v.n||'').trim()||PKL[v.k==='vac'?'vac':'ses'],a,b};
       S.cfg.periodi=p?(S.cfg.periodi||[]).map(x=>x.i===p.i?o:x):[...(S.cfg.periodi||[]),o];persist('cfg');render();toast('Periodo salvato');}});
 }
-function setMonth(ym){ym=clampYM(ym);S.cm=ym;S.cd=ym===T.date.slice(0,7)?T.date:ym+'-01';render();}
+function setMonth(ym){ym=clampYM(ym);S.cm=ym;S.cd=ym===T.date.slice(0,7)?T.date:ym+'-01';calGo();}
 const A={
   tab:el=>{if(el.dataset.t==='studio'&&S.tab==='studio'&&!S.qz&&!S.fc&&el.isConnected){window.scrollTo(0,0);return;}S.tab=el.dataset.t;if(S.tab!=='esami'){S.exId=null;S.rip=null;}if(S.tab==='studio'){S.qz=null;S.fc=null;S.pop=true;try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}}renderNav();S.pop=false;const k=++_tabK;if(fastTab()){window.scrollTo(0,0);}else if((window.__RT[S.tab]||0)>25)requestAnimationFrame(()=>setTimeout(()=>{if(k!==_tabK)return;render();window.scrollTo(0,0);},0));else{render();window.scrollTo(0,0);}},
   lsub:el=>{S.lsub=el.dataset.v;render();},
-  cview:el=>{S.cv=el.dataset.v==='anno'?'anno':'mese';if(S.cv==='anno')S.cy=clampAA(aaOf(S.cd));render();},
+  cview:el=>{S.cv=el.dataset.v==='anno'?'anno':'mese';if(S.cv==='anno')S.cy=clampAA(aaOf(S.cd));calGo();},
   'cy-prev':()=>setYear(+S.cy-1),'cy-next':()=>setYear(+S.cy+1),
-  'cy-today':()=>{const a=clampAA(aaOf(T.date));S.cy=a;S.cd=a===aaOf(T.date)?T.date:a+'-09-01';S.cm=clampYM(S.cd.slice(0,7));render();},
+  'cy-today':()=>{const a=clampAA(aaOf(T.date));S.cy=a;S.cd=a===aaOf(T.date)?T.date:a+'-09-01';S.cm=clampYM(S.cd.slice(0,7));calGo();},
   cmonth:el=>{S.cv='mese';setMonth(el.dataset.m);window.scrollTo(0,0);},
-  dstep:el=>{const nd=addDays(S.cd,+el.dataset.n),a=aaOf(nd);if(a<AA_MIN||a>AA_MAX){toast('Il calendario va dal 2026 al 2028');return;}S.cd=nd;S.cm=clampYM(nd.slice(0,7));S.cy=a;render();},
-  cring:(el,e)=>{const svg=el.ownerSVGElement;if(!svg||!e||!e.clientX&&!e.clientY)return;const r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal,k=vb.width/r.width,x=(e.clientX-r.left)*k+vb.x-180,y=(e.clientY-r.top)*k+vb.y-180;let a=Math.atan2(x,-y)*180/Math.PI;if(a<0)a+=360;const n=+svg.dataset.n,dj=+svg.dataset.j||0,q=Math.min(n-1,Math.floor(a/360*n)),i=q<n-dj?q+dj:q-(n-dj);S.cd=addDays(svg.dataset.s,i);S.cm=clampYM(S.cd.slice(0,7));render();},
+  dstep:el=>{const nd=addDays(S.cd,+el.dataset.n),a=aaOf(nd);if(a<AA_MIN||a>AA_MAX){toast('Il calendario va dal 2026 al 2028');return;}S.cd=nd;S.cm=clampYM(nd.slice(0,7));S.cy=a;calGo();},
+  cring:(el,e)=>{const svg=el.ownerSVGElement;if(!svg||!e||!e.clientX&&!e.clientY)return;const r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal,k=vb.width/r.width,x=(e.clientX-r.left)*k+vb.x-180,y=(e.clientY-r.top)*k+vb.y-180;let a=Math.atan2(x,-y)*180/Math.PI;if(a<0)a+=360;const n=+svg.dataset.n,dj=+svg.dataset.j||0,q=Math.min(n-1,Math.floor(a/360*n)),i=q<n-dj?q+dj:q-(n-dj);S.cd=addDays(svg.dataset.s,i);S.cm=clampYM(S.cd.slice(0,7));calGo();},
   'cm-prev':()=>setMonth(addMonth(S.cm,-1)),
   'cm-next':()=>setMonth(addMonth(S.cm,1)),
-  'cm-today':()=>{S.cd=T.date;S.cm=clampYM(T.date.slice(0,7));render();},
-  cday:el=>{S.cd=el.dataset.d;S.cm=clampYM(S.cd.slice(0,7));S.cy=clampAA(aaOf(S.cd));render();},
+  'cm-today':()=>{S.cd=T.date;S.cm=clampYM(T.date.slice(0,7));calGo();},
+  cday:el=>{S.cd=el.dataset.d;S.cm=clampYM(S.cd.slice(0,7));S.cy=clampAA(aaOf(S.cd));calGo();},
   
   
   'per-add':()=>perSheet(null),
