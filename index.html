@@ -4,7 +4,7 @@
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/logo-512.png"><link rel="apple-touch-icon" href="icons/logo-512.png"><meta name="theme-color" content="#000000">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cursus</title>
+<title>Study</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1639,7 +1639,7 @@ const A={
       onSubmit:v=>{let n=0;ex.forEach((e,i)=>{const c=Math.round(+v['c'+i]);if(c>0){e.cfu=c;saveEx(e);n++;}});if(!n){toast('Scrivi almeno un numero di CFU');return false;}render();toast(`${pl(n,'esame aggiornato','esami aggiornati')}`);}});
   },
   libretto:()=>{
-    sheet({title:'Incolla il libretto',intro:'Apri il libretto in Esse3, seleziona la tabella, copia e incolla qui. Cursus riconosce nomi, CFU e voti: prima di salvare vedrai un riepilogo da controllare.',
+    sheet({title:'Incolla il libretto',intro:'Apri il libretto in Esse3, seleziona la tabella, copia e incolla qui. Study riconosce nomi, CFU e voti: prima di salvare vedrai un riepilogo da controllare.',
       fields:[{k:'txt',l:'Testo del libretto',t:'textarea',rows:8}],submit:'Leggi il libretto',noFocus:false,
       onSubmit:v=>{if(!v.txt.trim()){toast('Incolla prima il testo');return false;}setTimeout(()=>readLibretto(v.txt),0);}});
   },
