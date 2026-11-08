@@ -5,10 +5,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Study</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jost-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/inter-latin-wght.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Jost';font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/jost-latin-wght.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 /* Direction: bianco e nero come il PayPal di oggi, numeri grandi e liste pulite come Trade Republic. Il blu è solo un accento. Telefono = barra a pillola con icone circolari, PC = colonna laterale. */
 :root{
   --bg:#FFFFFF; --ink:#0A0A0B; --muted:#6C6C72; --line:#E9E9EC;
@@ -99,10 +100,11 @@ nav button[aria-current="page"]{color:var(--pri-ink);background:var(--pri)}
 .help{margin:0 2px;font-size:13px}
 .empty{text-align:center;padding:24px 14px;color:var(--muted)}.empty h2{color:var(--ink);margin-bottom:6px;font-size:22px}
 .ex{cursor:pointer;display:block;width:100%;text-align:left;border:0;color:inherit;transition:transform .15s}
+.ex{min-width:0;max-width:100%;overflow:hidden;font:inherit}.ex .row{min-width:0;align-items:flex-start}.ex .row>:first-child{flex:1 1 0;min-width:0;overflow-wrap:anywhere}.ex .row>.pill{flex:none;margin-top:2px}.ex h3{overflow-wrap:anywhere;hyphens:auto}.ex .row.sp>span:first-child{line-height:1.35}
 .chart{width:100%;height:auto;display:block}
 
 /* bottoni a pillola */
-.btn{border:0;background:var(--btn);border-radius:99px;padding:7px 15px;cursor:pointer;font-weight:500;min-height:36px;transition:background .15s,transform .12s,opacity .15s}
+.btn{border:0;background:var(--btn);border-radius:99px;padding:7px 15px;white-space:nowrap;flex:none;cursor:pointer;font-weight:500;min-height:36px;transition:background .15s,transform .12s,opacity .15s}
 @media(hover:hover){html:not(.touch) .btn:hover{background:var(--surface2);}}
 .btn.pri{background:var(--pri);color:var(--pri-ink);font-weight:600}@media(hover:hover){html:not(.touch) .btn.pri:hover{filter:none;opacity:.88;background:var(--pri)}}
 .btn.bad{color:var(--bad)}.btn.sm{min-height:30px;padding:3px 12px;font-size:13px}
@@ -239,7 +241,7 @@ details>summary{list-style:none}details>summary::-webkit-details-marker{display:
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px}.chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:0;background:var(--surface2);border-radius:99px;padding:6px 13px;font-size:13px;cursor:pointer;color:var(--ink);white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
 .card .inp,.card .fld input,.card .fld textarea{background:var(--bg)}
-.chip[aria-pressed="true"]{background:var(--pri);color:var(--pri-ink);font-weight:600}
+.chip[aria-pressed="true"]{background:var(--pri);color:var(--pri-ink)}
 
 @media(min-width:820px){
   body{padding-bottom:0;padding-left:220px}
@@ -386,7 +388,8 @@ const pct=x=>x==null?'—':n1(x)+'%';
 const pl=(n,a,b)=>`${n} ${n===1?a:b}`;
 const hrs=h=>(Math.round(h*100)/100).toString().replace('.',',')+'h';
 const stable=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
-function tzParts(ms,tz){const o={};new Intl.DateTimeFormat('en-GB',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(ms)).forEach(x=>o[x.type]=x.value);return o;}
+const _dtf={};
+function tzParts(ms,tz){const o={};(_dtf[tz]||(_dtf[tz]=new Intl.DateTimeFormat('en-GB',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}))).formatToParts(new Date(ms)).forEach(x=>o[x.type]=x.value);return o;}
 function nowRome(){const o=tzParts(Date.now(),TZ);return{date:`${o.year}-${o.month}-${o.day}`,time:`${o.hour}:${o.minute}`};}
 function wallToMs(y,mo,d,h,mi,tz){const t=Date.UTC(y,mo-1,d,h,mi);let g=t;for(let i=0;i<2;i++){const o=tzParts(g,tz);g+=t-Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute);}return g;}
 function rel(s){const n=diffDays(T.date,s);return n===0?'oggi':n===1?'domani':n===-1?'ieri':n>1?`tra ${n} giorni`:`${-n} giorni fa`;}
@@ -438,11 +441,19 @@ async function flush(id){
   q.busy=false;q.last=Date.now();
   if(q.again){q.again=false;flush(id);}
 }
+/* RAW: testo dell'ultima versione ricevuta; BASE: la versione stessa. La firma "ordinata" (lenta) si calcola solo se il testo cambia. */
+const RAW={},BASE={};
+const sigOf=id=>{if(S.sig[id]===undefined&&BASE[id]!==undefined)S.sig[id]=stable(BASE[id]);return S.sig[id];};
 function ingest(id,data){
-  const j=stable(data);
-  if(S.sig[id]===j)return false;
-  S.sig[id]=j;
-  data=JSON.parse(JSON.stringify(data));
+  const raw=JSON.stringify(data);
+  if(RAW[id]===raw){BASE[id]=data;return false;}
+  if(BASE[id]!==undefined||S.sig[id]!==undefined){
+    const j=stable(data);
+    if(sigOf(id)===j){RAW[id]=raw;BASE[id]=data;return false;}
+    S.sig[id]=j;
+  }
+  RAW[id]=raw;BASE[id]=data;
+  data=JSON.parse(raw);
   if(id==='cfg')S.cfg={...DEF,...data,...FIXED,soglie:{...(data.soglie||{})}};
   else if(id==='lez')S.lez=(data.items||[]).slice().sort((a,b)=>(a.d+a.s).localeCompare(b.d+b.s));
   else if(id==='seg')S.seg=data.m||{};
@@ -454,7 +465,7 @@ function ingest(id,data){
 function applySnap(snap){
   let ch=false;const seen=new Set();
   snap.docs.forEach(d=>{seen.add(d.id);const q=Q[d.id];if(pend(d.id)||(q&&q.last&&Date.now()-q.last<5000))return;ch=ingest(d.id,d.data())||ch;});
-  Object.keys(S.exams).forEach(k=>{const id='ex-'+k,q=Q[id];if(!seen.has(id)&&!pend(id)&&!(q&&q.last&&Date.now()-q.last<5000)){delete S.exams[k];delete S.sig[id];ch=true;}});
+  Object.keys(S.exams).forEach(k=>{const id='ex-'+k,q=Q[id];if(!seen.has(id)&&!pend(id)&&!(q&&q.last&&Date.now()-q.last<5000)){delete S.exams[k];delete S.sig[id];delete RAW[id];delete BASE[id];ch=true;}});
   if(S.mode!=='db'){S.mode='db';banner();ch=true;}
   ensureMaterie();
   if(ch)rerender();
@@ -463,13 +474,15 @@ const SB={url:'https://fxzdmjixwiekdiivpmgj.supabase.co',anon:'sb_publishable_lm
 let SKEY=null;
 try{const m=/[#&]k=([^&]+)/.exec(location.hash);if(m){SKEY=decodeURIComponent(m[1]);localStorage.setItem('cursus.k',SKEY);history.replaceState(null,'',location.pathname+location.search);}else SKEY=localStorage.getItem('cursus.k');}catch(e){}
 const LS={g(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
-async function rpc(fn,body){
+async function rpc(fn,body,meta){
   const r=await fetch(SB.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SB.anon,'Authorization':'Bearer '+SB.anon,'Content-Type':'application/json'},body:JSON.stringify({p_key:SKEY,...body})});
   if(!r.ok){const e=new Error('http '+r.status);e.code=r.status;throw e;}
-  const t=await r.text();return t?JSON.parse(t):null;
+  const t=await r.text();if(meta)meta.text=t;return t?JSON.parse(t):null;
 }
-let CACHE=LS.g('cursus.cache')||{},OUT=LS.g('cursus.out')||{};
-let _sc=0;const flushCache=()=>{if(_sc){clearTimeout(_sc);_sc=0;}LS.s('cursus.cache',CACHE);};
+let _lsRaw=null;
+let CACHE=(()=>{try{_lsRaw=localStorage.getItem('cursus.cache');return JSON.parse(_lsRaw);}catch(e){return null;}})()||{},OUT=LS.g('cursus.out')||{};
+/* scrivo la copia locale solo se è cambiata davvero */
+let _sc=0;const flushCache=()=>{if(_sc){clearTimeout(_sc);_sc=0;}try{const t=JSON.stringify(CACHE);if(t!==_lsRaw){localStorage.setItem('cursus.cache',t);_lsRaw=t;}}catch(e){}};
 const saveCache=()=>{if(_sc)return;_sc=setTimeout(flushCache,300);},saveOut=()=>LS.s('cursus.out',OUT);
 const snapOf=()=>({docs:Object.keys(CACHE).map(id=>({id,data:()=>CACHE[id]}))});
 let _dr=null,_again=false;
@@ -492,15 +505,18 @@ col={doc:id=>({
   set:async d=>{CACHE[id]=d;saveCache();OUT[id]={data:d};saveOut();await drain();},
   delete:async()=>{delete CACHE[id];saveCache();OUT[id]={del:true};saveOut();await drain();}
 })};
-let _poll=false;
+let _poll=false,_lastGet=null;
 async function pull(){
   if(_poll||!SKEY)return;_poll=true;
   try{
     await drain();
-    const rows=await rpc('cursus_get',{});
-    const n={};rows.forEach(r=>{n[r.id]=r.data;});
-    Object.keys(OUT).forEach(id=>{if(OUT[id].del)delete n[id];else n[id]=OUT[id].data;});
-    CACHE=n;saveCache();applySnap(snapOf());
+    const meta={},rows=await rpc('cursus_get',{},meta);
+    if(!(meta.text===_lastGet&&S.mode==='db'&&!Object.keys(OUT).length)){
+      _lastGet=meta.text;
+      const n={};rows.forEach(r=>{n[r.id]=r.data;});
+      Object.keys(OUT).forEach(id=>{if(OUT[id].del)delete n[id];else n[id]=OUT[id].data;});
+      CACHE=n;saveCache();applySnap(snapOf());
+    }
   }catch(e){if(e&&e.code===401||e&&e.code===403||e&&e.code===400){}}
   _poll=false;
 }
@@ -1081,7 +1097,7 @@ async function genPack(e,what,n){
   const k=importPack(e,d);saveEx(e);render();toast(k?`Aggiunti ${k} elementi`:'Niente di nuovo da aggiungere');
 }
 /* lettura dei file: testi, pacchetti json, Word, PowerPoint, PDF e zip con tutto dentro */
-const KNOWN_RE=/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log|json|html?|xml|docx|pptx|pdf)$/i,MAT_MAX=400000,MAT_ONE=40000;
+const KNOWN_RE=/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log|json|html?|xml|docx|pptx|pdf)$/i,MAT_MAX=150000,MAT_ONE=45000;
 const xmlTxt=x=>x.replace(/<[^>]+>/g,'').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n)).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
 async function zipEntries(blob){
   const n=blob.size,base=Math.max(0,n-66000),tail=new DataView(await blob.slice(base,n).arrayBuffer());
@@ -1549,11 +1565,13 @@ function calRender(){
   schedulePre();
 }
 const calGo=()=>S.tab==='calendario'&&S.mode!=='loading'&&S.mode!=='wait'&&$('#view>.pane')?calRender():render();
-function schedulePre(){clearTimeout(_pre);_pre=setTimeout(preNext,120);}
-function preNext(){if(document.hidden||S.mode==='loading'||S.mode==='wait')return;const a=document.activeElement;if(a&&a.matches&&a.matches('#view input,#view textarea'))return;
+const idle=f=>window.requestIdleCallback?requestIdleCallback(f,{timeout:2000}):setTimeout(f,30);
+function schedulePre(){clearTimeout(_pre);_pre=setTimeout(()=>idle(preNext),_pre0?120:350);_pre0=1;}
+let _pre0=0;
+function preNext(dl){if(document.hidden||S.mode==='loading'||S.mode==='wait')return;if(dl&&dl.timeRemaining&&!dl.didTimeout&&dl.timeRemaining()<5){schedulePre();return;}const a=document.activeElement;if(a&&a.matches&&a.matches('#view input,#view textarea'))return;
   const cur=pk(S.tab),t=PANES.find(x=>x!==cur&&(!PN[x]||PN[x].sig!==uiSig(x)));if(!t)return;const p=paneOf(t);if(!p)return;
   try{p.innerHTML=pv(t)();PN[t]={sig:uiSig(t),at:performance.now()};}catch(e){p.innerHTML='';PN[t]={sig:'x',at:0};}
-  _pre=setTimeout(preNext,30);}
+  _pre=setTimeout(()=>idle(preNext),30);}
 function render(){
   T=nowRome();
   try{localStorage.setItem('study.tab',S.tab);}catch(_){}
@@ -2115,8 +2133,27 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&_sc)flushC
   document.addEventListener('pointerup',()=>{if(el){const x=el;el=null;if(x.matches('nav button[data-t=studio][aria-current=page]')){x.classList.add('prs-out');x.classList.remove('prs');setTimeout(()=>x.classList.remove('prs-out'),200);}else{x.classList.remove('prs','prs-out');x.classList.add('nt');requestAnimationFrame(()=>requestAnimationFrame(()=>x.classList.remove('nt')));}}},true);
 })();
 try{const t=localStorage.getItem('study.tab');if(t&&TABS.some(x=>x[0]===t))S.tab=t;}catch(_){}
-render();banner();boot();
+if(!SKEY||!Object.keys(CACHE).length)render();
+banner();boot();
 </script>
-<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  /* Se arriva una versione nuova mentre non stai facendo niente (appena aperta l'app o appena tornato), si ricarica da sola; altrimenti aspetta il prossimo rientro. */
+  let touched=false,vis=performance.now(),upd=false,chk=0;
+  const idleNow=()=>!document.getElementById('sheet')&&!(typeof S==='object'&&(S.qz||S.fc||S.pending))&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'');
+  const go=()=>{try{const t=+sessionStorage.getItem('upd.t')||0;if(Date.now()-t<60000)return;sessionStorage.setItem('upd.t',Date.now());}catch(_){}location.reload();};
+  addEventListener('pointerdown',()=>{touched=true;},{capture:true,passive:true});
+  addEventListener('keydown',()=>{touched=true;},{capture:true,passive:true});
+  navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.t==='upd'){upd=true;if(!touched&&idleNow()&&performance.now()-vis<20000)go();}});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)return;
+    vis=performance.now();touched=false;
+    if(upd&&idleNow()){go();return;}
+    const c=navigator.serviceWorker.controller;
+    if(c&&Date.now()-chk>120000){chk=Date.now();c.postMessage({t:'chk'});}
+  });
+}
+</script>
 </body>
 </html>
