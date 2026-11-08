@@ -326,7 +326,7 @@ nav button[data-t=studio].unpush{animation:unpush .16s ease-out!important}
 <div id="sheet-root"></div>
 <div id="toast" role="status"></div>
 <input type="file" id="file-ics" accept=".ics,text/calendar" hidden>
-<input type="file" id="file-pack" accept=".json,.txt,.md,text/plain,application/json" multiple hidden>
+<input type="file" id="file-pack" accept=".json,.txt,.md,.zip,.pdf,.docx,.pptx,.csv,.html,text/plain,application/json,application/zip,application/pdf" multiple hidden>
 
 
 <script>
@@ -994,7 +994,7 @@ function stMateriale(e,s){
   const cnt=[['Schede',s.sch.length],['Quiz',s.qz.length],['Flashcard',s.fc.length],['Trappole',s.tr.length]];
   let h=`<section class="card stack"><h2>Il tuo materiale</h2><div class="stats3" style="grid-template-columns:repeat(4,minmax(0,1fr))">${cnt.map(([l,n])=>`<div><small>${l}</small><span class="num">${n}</span></div>`).join('')}</div>
   <div class="row wrap"><button class="btn pri" data-a="st-file">Carica file</button><button class="btn" data-a="st-paste">Incolla testo</button><button class="btn" data-a="st-gen" ${s.mat.length?'':'disabled'}>Genera con Claude</button></div>
-  <small>Carica un pacchetto .json oppure appunti in .txt o .md: i testi restano qui e da lì puoi generare schede, quiz e flashcard. Per i PDF incolla il testo, oppure mandameli in chat e preparo il pacchetto.</small></section>`;
+  <small>Carica un pacchetto .json, appunti (.txt, .md), PDF, Word, PowerPoint oppure uno .zip con più file dentro: ne leggo il testo, resta qui e da lì puoi generare schede, quiz e flashcard. I PDF scansionati (solo immagini) non si possono leggere.</small></section>`;
   if(s.mat.length)h+=`<section class="card stack"><h2>Testi caricati</h2>${s.mat.map(m=>`<div class="row"><span style="flex:1;min-width:0"><b>${esc(m.t)}</b><br><small>${m.x.length.toLocaleString('it-IT')} caratteri</small></span><button class="btn sm" data-a="st-matdel" data-i="${m.i}" aria-label="Elimina">✕</button></div>`).join('')}</section>`;
   return h;
 }
@@ -1064,7 +1064,8 @@ async function genPack(e,what,n){
   const s=stu(e),f0=s.fmt;let sm=null;
   try{sm=window.claude&&await window.claude.use('sample');}catch(_){}
   if(!sm){toast('La generazione con Claude non è disponibile qui');return;}
-  const src=s.mat.map(m=>'### '+m.t+'\n'+m.x).join('\n\n').slice(0,24000);
+  let rest=45000,left=s.mat.length;const part=new Map();[...s.mat].sort((a,b)=>a.x.length-b.x.length).forEach(m=>{const x=m.x.slice(0,Math.floor(rest/left));part.set(m,x);rest-=x.length;left--;});
+  const src=s.mat.map(m=>'### '+m.t+'\n'+part.get(m)).join('\n\n');
   const spec={schede:'"schede":[{"cat":string (capitolo),"t":string,"x":string (riassunto chiaro, 60-120 parole)}]',quiz:`"quiz":[{"q":string,"o":[${f0.opz||4} stringhe],"c":indice della risposta giusta (0-${(f0.opz||4)-1}),"sp":string (spiegazione breve)}]`,aperte:'"aperte":[{"q":string (domanda aperta come all’esame),"a":string (traccia di risposta, 40-90 parole)}]',flash:'"flash":[{"f":string (fronte),"b":string (retro, breve)}]',trappole:'"trappole":[{"t":string (errore o confusione frequente),"x":string (come evitarlo)}]'};
   const prompt=`Sei un tutor universitario. Dal materiale seguente sull'esame "${nm(e.corso)}" crea contenuti di studio in italiano, fedeli al testo, senza inventare nulla.${fmtSum(f0)?' Tipo di esame: '+fmtSum(f0)+(f0.txt?' ('+f0.txt+')':'')+'. Adatta stile e difficolt\u00e0 delle domande a questo formato.':''} Genera al massimo ${n} elementi per ciascuna categoria richiesta: ${what.join(', ')}. Rispondi SOLO con un oggetto JSON con queste chiavi: {${what.map(k=>spec[k]).join(', ')}}.\n\nMATERIALE:\n${src}`;
   toast('Claude sta preparando i contenuti…');
@@ -1076,14 +1077,84 @@ async function genPack(e,what,n){
   if(!d||typeof d!=='object'){toast('Risposta non valida: riprova');return;}
   const k=importPack(e,d);saveEx(e);render();toast(k?`Aggiunti ${k} elementi`:'Niente di nuovo da aggiungere');
 }
+/* lettura dei file: testi, pacchetti json, Word, PowerPoint, PDF e zip con tutto dentro */
+const KNOWN_RE=/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log|json|html?|xml|docx|pptx|pdf)$/i,MAT_MAX=400000,MAT_ONE=40000;
+const xmlTxt=x=>x.replace(/<[^>]+>/g,'').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n)).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+async function zipEntries(blob){
+  const n=blob.size,base=Math.max(0,n-66000),tail=new DataView(await blob.slice(base,n).arrayBuffer());
+  let i=tail.byteLength-22;while(i>=0&&tail.getUint32(i,true)!==0x06054b50)i--;
+  if(i<0)throw new Error('zip');
+  const cnt=tail.getUint16(i+10,true),cdSize=tail.getUint32(i+12,true),cdOff=tail.getUint32(i+16,true);
+  const cd=new DataView(await blob.slice(cdOff,cdOff+cdSize).arrayBuffer()),dec=new TextDecoder(),out=[];let p=0;
+  for(let k=0;k<cnt&&p+46<=cd.byteLength&&cd.getUint32(p,true)===0x02014b50;k++){
+    const fl=cd.getUint16(p+8,true),me=cd.getUint16(p+10,true),cs=cd.getUint32(p+20,true),us=cd.getUint32(p+24,true),nl=cd.getUint16(p+28,true),el=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true),lo=cd.getUint32(p+42,true);
+    out.push({name:dec.decode(new Uint8Array(cd.buffer,cd.byteOffset+p+46,nl)),fl,me,cs,us,lo});p+=46+nl+el+cl;
+  }
+  return out;
+}
+async function zipRead(blob,en){
+  if(en.fl&1)throw new Error('cifrato');
+  const h=new DataView(await blob.slice(en.lo,en.lo+30).arrayBuffer()),st=en.lo+30+h.getUint16(26,true)+h.getUint16(28,true),raw=blob.slice(st,st+en.cs);
+  if(en.me===0)return raw;
+  if(en.me!==8)throw new Error('metodo');
+  return new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+}
+let _pdfjs=null;
+async function pdfText(blob){
+  if(!_pdfjs){const B='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/';_pdfjs=await import(B+'pdf.min.mjs');const w=await (await fetch(B+'pdf.worker.min.mjs')).text();_pdfjs.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([w],{type:'text/javascript'}));}
+  const pdf=await _pdfjs.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise,o=[];
+  for(let i=1;i<=Math.min(pdf.numPages,300);i++){const c=await (await pdf.getPage(i)).getTextContent();o.push(c.items.map(t=>t.str+(t.hasEOL?'\n':' ')).join('').replace(/[ \t]+\n/g,'\n'));}
+  try{pdf.destroy();}catch(_){}
+  return o.join('\n\n');
+}
+async function extractText(name,blob,any){
+  const l=name.toLowerCase();
+  if(/\.json$/.test(l)){const t=await blob.text(),d=packFromText(t);return d?{pack:d}:{x:t};}
+  if(/\.(html?|xml)$/.test(l))return {x:xmlTxt((await blob.text()).replace(/<(script|style)[\s\S]*?<\/\1>/gi,'').replace(/<\/(p|div|li|h\d|tr)>|<br\s*\/?>/gi,'\n'))};
+  if(/\.docx$/.test(l)){const en=(await zipEntries(blob)).find(e=>e.name==='word/document.xml');if(!en)return null;return {x:xmlTxt((await (await zipRead(blob,en)).text()).replace(/<\/w:p>/g,'\n').replace(/<w:tab\/>/g,'\t'))};}
+  if(/\.pptx$/.test(l)){
+    const es=(await zipEntries(blob)).filter(e=>/^ppt\/slides\/slide\d+\.xml$/.test(e.name)).sort((a,b)=>+a.name.match(/(\d+)\.xml/)[1]-+b.name.match(/(\d+)\.xml/)[1]);
+    if(!es.length)return null;const o=[];
+    for(const en of es)o.push('Slide '+en.name.match(/(\d+)\.xml/)[1]+'\n'+xmlTxt((await (await zipRead(blob,en)).text()).replace(/<\/a:p>/g,'\n')).trim());
+    return {x:o.join('\n\n')};
+  }
+  if(/\.pdf$/.test(l))return {x:await pdfText(blob)};
+  if(any||/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log)$/.test(l))return {x:await blob.text()};
+  return null;
+}
+async function loadFiles(e,files){
+  let np=0,nt=0,bad=0,skip=0,ign=0;
+  const used=()=>stu(e).mat.reduce((a,m)=>a+m.x.length,0);
+  const add=async(name,blob,any)=>{
+    try{
+      const r=await extractText(name,blob,any);
+      if(!r){bad++;return;}
+      if(r.pack){np+=importPack(e,r.pack);return;}
+      const x=(r.x||'').replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim();
+      if(!x){bad++;return;}
+      if(used()>=MAT_MAX){skip++;return;}
+      if(addMat(e,name.replace(/^.*\//,'').replace(/\.[^.]+$/,''),x.slice(0,MAT_ONE)))nt++;else bad++;
+    }catch(_){bad++;}
+  };
+  for(const f of files){
+    if(/\.zip$/i.test(f.name)){
+      try{
+        const es=(await zipEntries(f)).filter(z=>!z.name.endsWith('/')&&!/(^|\/)(__MACOSX|\.)/.test(z.name));
+        let i=0;
+        for(const z of es){
+          if(!KNOWN_RE.test(z.name)){ign++;continue;}
+          toast(`Leggo lo zip… ${++i}/${es.length}`);
+          try{await add(z.name,await zipRead(f,z),false);}catch(_){bad++;}
+        }
+      }catch(_){bad++;}
+    }else await add(f.name,f,true);
+  }
+  saveEx(e);render();
+  toast([np?`${np} elementi importati`:'',nt?`${nt} testi aggiunti`:'',skip?`${skip} saltati: troppo materiale`:'',bad?`${bad} non letti`:'',ign?`${ign} di altro tipo ignorati`:''].filter(Boolean).join(' · ')||'Nessun file letto');
+}
 document.getElementById('file-pack').addEventListener('change',async ev=>{
   const files=[...ev.target.files];ev.target.value='';const e=sx();if(!e||!files.length)return;
-  let np=0,nt=0,bad=0;
-  for(const f of files){
-    try{const t=await f.text();const d=/\.json$/i.test(f.name)?packFromText(t):null;
-      if(d)np+=importPack(e,d);else if(/\.json$/i.test(f.name))bad++;else if(addMat(e,f.name.replace(/\.[^.]+$/,''),t))nt++;else bad++;}catch(_){bad++;}
-  }
-  saveEx(e);render();toast([np?`${np} elementi importati`:'',nt?`${nt} testi aggiunti`:'',bad?`${bad} file non letti`:''].filter(Boolean).join(' · ')||'Nessun file letto');
+  toast('Leggo i file…');await loadFiles(e,files);
 });
 
 const cfuTxt=e=>(+e.cfu)?`${e.cfu} CFU`:'CFU da inserire';
