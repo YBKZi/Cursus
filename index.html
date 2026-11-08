@@ -1418,6 +1418,7 @@ document.addEventListener('pointerout',e=>{if(e.pointerType==='touch'||performan
 window.addEventListener('scroll',()=>{if((lastPt==='touch'||lastPt==='pen')&&performance.now()-_tipT>600)tipClear(null);},{passive:true,capture:true});
 function render(){
   T=nowRome();
+  try{localStorage.setItem('study.tab',S.tab);}catch(_){}
   renderNav();
   $('#top').innerHTML=topHTML();
   $('#view').innerHTML=S.mode==='loading'||S.mode==='wait'?'<div class="empty">Carico i tuoi dati…</div>':V[S.tab]();
@@ -1928,6 +1929,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
     if(el&&Date.now()-t0<900){e.stopPropagation();e.preventDefault();}
   },true);
 })();
+try{const t=localStorage.getItem('study.tab');if(t&&TABS.some(x=>x[0]===t))S.tab=t;}catch(_){}
 render();banner();boot();
 </script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
