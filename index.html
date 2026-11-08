@@ -1427,6 +1427,7 @@ document.addEventListener('animationend',e=>{if(e.animationName==='pop')e.target
 /* tooltip della barra: su touch spariscono al primo tocco o scroll altrove */
 let lastPt='mouse',_tipT=0,_tdT=-9999;
 const tipClear=k=>document.querySelectorAll('#nav button.tip').forEach(x=>{if(x!==k)x.classList.remove('tip');});
+window.inBox=(el,e)=>{const r=el.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;};
 const navBtn=e=>e.target.closest&&e.target.closest('#nav button');
 document.addEventListener('pointerdown',e=>{lastPt=e.pointerType||'mouse';if(lastPt!=='mouse')_tdT=performance.now();const b=navBtn(e);tipClear(b);if(b&&lastPt==='mouse'){b.classList.add('tip');_tipT=performance.now();}},true);
 document.addEventListener('pointerover',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;lastPt=e.pointerType||'mouse';const b=navBtn(e);tipClear(b);if(b)b.classList.add('tip');},true);
@@ -1704,7 +1705,7 @@ document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||per
     cur=el;sx=e.clientX;sy=e.clientY;S.pd=Date.now();});
   document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))cur=null;},{passive:true});
   document.addEventListener('pointercancel',()=>{cur=null;});
-  document.addEventListener('pointerup',()=>{const el=cur;cur=null;if(!el||!el.isConnected)return;S.pd=Date.now();tipClear(el);el.classList.add('tip');_tipT=performance.now();A.tab(el);});
+  document.addEventListener('pointerup',e=>{const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e))return;S.pd=Date.now();tipClear(el);el.classList.add('tip');_tipT=performance.now();A.tab(el);});
 })();
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='tab'&&el.closest('nav')&&S.pd&&Date.now()-S.pd<900){S.pd=0;return;}const f=A[el.dataset.a];if(f){if(el.dataset.arm&&!arm(el))return;f(el,e);}});
 function handleForm(f){
@@ -1939,7 +1940,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
   document.addEventListener('pointercancel',()=>{if(cur)undo();});
   document.addEventListener('pointerup',e=>{
     if(!cur)return;clearTimeout(pt);const el=cur;cur=null;prev=null;
-    if(!el.isConnected)return;
+    if(!el.isConnected||!inBox(el,e))return;
     paint(el);t0=Date.now();requestAnimationFrame(()=>setTimeout(()=>{if(el.isConnected)A['st-pick'](el);},0));
   });
   window.addEventListener('click',e=>{
@@ -1954,8 +1955,8 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.mode===
   document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>6||Math.abs(e.clientY-sy)>6))cur=null;},{passive:true});
   document.addEventListener('pointercancel',()=>{cur=null;});
   document.addEventListener('scroll',()=>{cur=null;},true);
-  document.addEventListener('pointerup',()=>{
-    const el=cur;cur=null;if(!el||!el.isConnected||el.getAttribute('aria-pressed')==='true')return;
+  document.addEventListener('pointerup',e=>{
+    const el=cur;cur=null;if(!el||!el.isConnected||!inBox(el,e)||el.getAttribute('aria-pressed')==='true')return;
     [...el.parentNode.children].forEach(x=>{if(x.hasAttribute('aria-pressed'))x.setAttribute('aria-pressed',x===el?'true':'false');});
     t0=Date.now();
     requestAnimationFrame(()=>setTimeout(()=>{if(el.isConnected)el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));},0));
