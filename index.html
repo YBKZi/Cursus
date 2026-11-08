@@ -1412,7 +1412,7 @@ document.addEventListener('animationend',e=>{if(e.animationName==='pop')e.target
 let lastPt='mouse',_tipT=0,_tdT=-9999;
 const tipClear=k=>document.querySelectorAll('#nav button.tip').forEach(x=>{if(x!==k)x.classList.remove('tip');});
 const navBtn=e=>e.target.closest&&e.target.closest('#nav button');
-document.addEventListener('pointerdown',e=>{lastPt=e.pointerType||'mouse';if(lastPt!=='mouse')_tdT=performance.now();const b=navBtn(e);tipClear(b);if(b){b.classList.add('tip');_tipT=performance.now();}},true);
+document.addEventListener('pointerdown',e=>{lastPt=e.pointerType||'mouse';if(lastPt!=='mouse')_tdT=performance.now();const b=navBtn(e);tipClear(b);if(b&&lastPt==='mouse'){b.classList.add('tip');_tipT=performance.now();}},true);
 document.addEventListener('pointerover',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;lastPt=e.pointerType||'mouse';const b=navBtn(e);tipClear(b);if(b)b.classList.add('tip');},true);
 document.addEventListener('pointerout',e=>{if(e.pointerType==='touch'||performance.now()-_tdT<700)return;const b=navBtn(e);if(b&&!(e.relatedTarget&&b.contains(e.relatedTarget)))b.classList.remove('tip');},true);
 window.addEventListener('scroll',()=>{if((lastPt==='touch'||lastPt==='pen')&&performance.now()-_tipT>600)tipClear(null);},{passive:true,capture:true});
@@ -1681,7 +1681,15 @@ document.addEventListener('pointercancel',()=>{if(_lp)_lp.ok=false;},true);
 document.addEventListener('scroll',()=>{if(_lp)_lp.ok=false;},true);
 document.addEventListener('pointerup',e=>{const p=_lp;_lp=null;if(!p||!p.ok||performance.now()-p.t<350||!p.el.isConnected)return;
   const t0=performance.now();setTimeout(()=>{if(_lastClick<t0&&p.el.isConnected)p.el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));},90);},true);
-document.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;S.pd=Date.now();A.tab(el);});
+(function(){
+  let cur=null,sx=0,sy=0;
+  document.addEventListener('pointerdown',e=>{cur=null;const el=e.target.closest&&e.target.closest('nav [data-a=tab]');if(!el||e.button>0)return;
+    if(e.pointerType==='mouse'){S.pd=Date.now();A.tab(el);return;}
+    cur=el;sx=e.clientX;sy=e.clientY;S.pd=Date.now();});
+  document.addEventListener('pointermove',e=>{if(cur&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10))cur=null;},{passive:true});
+  document.addEventListener('pointercancel',()=>{cur=null;});
+  document.addEventListener('pointerup',()=>{const el=cur;cur=null;if(!el||!el.isConnected)return;S.pd=Date.now();tipClear(el);el.classList.add('tip');_tipT=performance.now();A.tab(el);});
+})();
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='tab'&&el.closest('nav')&&S.pd&&Date.now()-S.pd<900){S.pd=0;return;}const f=A[el.dataset.a];if(f){if(el.dataset.arm&&!arm(el))return;f(el,e);}});
 function handleForm(f){
   const x=ex(),fd=new FormData(f);
