@@ -1097,16 +1097,28 @@ async function genPack(e,what,n){
   const k=importPack(e,d);saveEx(e);render();toast(k?`Aggiunti ${k} elementi`:'Niente di nuovo da aggiungere');
 }
 /* lettura dei file: testi, pacchetti json, Word, PowerPoint, PDF e zip con tutto dentro */
-const KNOWN_RE=/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log|json|html?|xml|docx|pptx|pdf)$/i,MAT_MAX=150000,MAT_ONE=45000;
+const KNOWN_RE=/\.(txt|md|markdown|csv|tsv|srt|vtt|tex|log|json|html?|xml|docx|pptx|pdf)$/i,MAT_MAX=150000,MAT_ONE=45000,ZIP_BIG=150e6;
 const xmlTxt=x=>x.replace(/<[^>]+>/g,'').replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n)).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
 async function zipEntries(blob){
   const n=blob.size,base=Math.max(0,n-66000),tail=new DataView(await blob.slice(base,n).arrayBuffer());
   let i=tail.byteLength-22;while(i>=0&&tail.getUint32(i,true)!==0x06054b50)i--;
   if(i<0)throw new Error('zip');
-  const cnt=tail.getUint16(i+10,true),cdSize=tail.getUint32(i+12,true),cdOff=tail.getUint32(i+16,true);
+  let cnt=tail.getUint16(i+10,true),cdSize=tail.getUint32(i+12,true),cdOff=tail.getUint32(i+16,true);
+  /* zip64: usato dai programmi di compressione per archivi grandi o con molti file */
+  if((cnt===0xFFFF||cdSize===0xFFFFFFFF||cdOff===0xFFFFFFFF)&&i>=20&&tail.getUint32(i-20,true)===0x07064b50){
+    const r=Number(tail.getBigUint64(i-20+8,true)),z=new DataView(await blob.slice(r,r+56).arrayBuffer());
+    if(z.getUint32(0,true)===0x06064b50){cnt=Number(z.getBigUint64(32,true));cdSize=Number(z.getBigUint64(40,true));cdOff=Number(z.getBigUint64(48,true));}
+  }
   const cd=new DataView(await blob.slice(cdOff,cdOff+cdSize).arrayBuffer()),dec=new TextDecoder(),out=[];let p=0;
   for(let k=0;k<cnt&&p+46<=cd.byteLength&&cd.getUint32(p,true)===0x02014b50;k++){
-    const fl=cd.getUint16(p+8,true),me=cd.getUint16(p+10,true),cs=cd.getUint32(p+20,true),us=cd.getUint32(p+24,true),nl=cd.getUint16(p+28,true),el=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true),lo=cd.getUint32(p+42,true);
+    const fl=cd.getUint16(p+8,true),me=cd.getUint16(p+10,true),nl=cd.getUint16(p+28,true),el=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true);
+    let cs=cd.getUint32(p+20,true),us=cd.getUint32(p+24,true),lo=cd.getUint32(p+42,true);
+    if(cs===0xFFFFFFFF||us===0xFFFFFFFF||lo===0xFFFFFFFF){
+      let q=p+46+nl;const end=q+el;
+      while(q+4<=end){const id=cd.getUint16(q,true),sz=cd.getUint16(q+2,true);
+        if(id===1){let o=q+4;if(us===0xFFFFFFFF){us=Number(cd.getBigUint64(o,true));o+=8;}if(cs===0xFFFFFFFF){cs=Number(cd.getBigUint64(o,true));o+=8;}if(lo===0xFFFFFFFF){lo=Number(cd.getBigUint64(o,true));}break;}
+        q+=4+sz;}
+    }
     out.push({name:dec.decode(new Uint8Array(cd.buffer,cd.byteOffset+p+46,nl)),fl,me,cs,us,lo});p+=46+nl+el+cl;
   }
   return out;
@@ -1142,7 +1154,7 @@ async function extractText(name,blob,any){
   return null;
 }
 async function loadFiles(e,files){
-  let np=0,nt=0,bad=0,skip=0,ign=0;
+  let np=0,nt=0,bad=0,skip=0,ign=0,big=0,zbad=0,cap=MAT_ONE;
   const used=()=>stu(e).mat.reduce((a,m)=>a+m.x.length,0);
   const add=async(name,blob,any)=>{
     try{
@@ -1152,24 +1164,29 @@ async function loadFiles(e,files){
       const x=(r.x||'').replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim();
       if(!x){bad++;return;}
       if(used()>=MAT_MAX){skip++;return;}
-      if(addMat(e,name.replace(/^.*\//,'').replace(/\.[^.]+$/,''),x.slice(0,MAT_ONE)))nt++;else bad++;
+      if(addMat(e,name.replace(/^.*\//,'').replace(/\.[^.]+$/,''),x.slice(0,cap)))nt++;else bad++;
     }catch(_){bad++;}
   };
   for(const f of files){
     if(/\.zip$/i.test(f.name)){
       try{
         const es=(await zipEntries(f)).filter(z=>!z.name.endsWith('/')&&!/(^|\/)(__MACOSX|\.)/.test(z.name));
+        const ok=es.filter(z=>KNOWN_RE.test(z.name));ign+=es.length-ok.length;
+        /* il materiale e' limitato: divido lo spazio tra i file, cosi' ce n'e' un po' di ognuno */
+        cap=Math.max(2500,Math.min(MAT_ONE,Math.floor(MAT_MAX/Math.max(1,ok.length))));
         let i=0;
-        for(const z of es){
-          if(!KNOWN_RE.test(z.name)){ign++;continue;}
-          toast(`Leggo lo zip… ${++i}/${es.length}`);
+        for(const z of ok){
+          i++;
+          if(used()>=MAT_MAX){skip+=ok.length-i+1;break;}
+          if(z.us>ZIP_BIG||z.cs>ZIP_BIG){big++;continue;}
+          if(i%3===1)toast(`Leggo lo zip… ${i}/${ok.length}`);
           try{await add(z.name,await zipRead(f,z),false);}catch(_){bad++;}
         }
-      }catch(_){bad++;}
+      }catch(_){zbad++;}
     }else await add(f.name,f,true);
   }
   saveEx(e);render();
-  toast([np?`${np} elementi importati`:'',nt?`${nt} testi aggiunti`:'',skip?`${skip} saltati: troppo materiale`:'',bad?`${bad} non letti`:'',ign?`${ign} di altro tipo ignorati`:''].filter(Boolean).join(' · ')||'Nessun file letto');
+  toast([np?`${np} elementi importati`:'',nt?`${nt} testi aggiunti`:'',skip?`${skip} saltati: troppo materiale`:'',big?`${big} troppo grandi (oltre 150 MB)`:'',zbad?'zip non leggibile (rovinato o con password)':'',bad?`${bad} non letti`:'',ign?`${ign} di altro tipo ignorati`:''].filter(Boolean).join(' · ')||'Nessun file letto');
 }
 document.getElementById('file-pack').addEventListener('change',async ev=>{
   const files=[...ev.target.files];ev.target.value='';const e=sx();if(!e||!files.length)return;
