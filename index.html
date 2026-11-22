@@ -925,6 +925,8 @@ function prepOf(e){
   const s=e.studio||{},p=[];
   /* con le priorità dell'esame (e.pri) gli extra (livello 3) non contano: 100% = priorità + essenziale */
   const ex3=t=>!!e.pri&&+e.pri[String(t||'').split(' \u00b7 ')[0]]===3;
+  /* con le priorità conta solo la lettura delle schede di priorità ed essenziale: niente quiz, flashcard, argomenti o altro */
+  if(e.pri){const sc0=(s.sch||[]).filter(x=>!ex3(x.cat));return sc0.length?Math.round(100*sc0.filter(x=>x.r).length/sc0.length):null;}
   const ar=(e.argomenti||[]).filter(x=>!ex3(x.t));if(ar.length)p.push(ar.filter(x=>x.d).length/ar.length);
   const dm=e.domande||[];if(dm.length)p.push(dm.filter(x=>x.k).length/dm.length);
   const fc=s.fc||[];if(fc.length)p.push(fc.reduce((a,c)=>a+Math.min(3,c.lv||0),0)/(fc.length*3));
