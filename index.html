@@ -278,7 +278,7 @@ details>summary{list-style:none}details>summary::-webkit-details-marker{display:
 .xstats small{display:block}.xstats .num{display:block;font-size:24px;line-height:1.15;margin:2px 0 6px}
 .pday{padding-top:8px}.task{display:flex;align-items:center;gap:8px;min-height:38px}
 .scat summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;min-height:36px}
-.sch{padding:10px 0;border-top:1px solid var(--line)}.sch p{margin:4px 0 6px}
+.sch{padding:10px 0;border-top:1px solid var(--line)}.sch p{margin:4px 0 6px}.scat.done:not([open]){opacity:.45}.sch.done{opacity:.5}
 .qtext{font-weight:600;font-size:18px;line-height:1.3}
 .opt{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:11px 13px;cursor:pointer;font:inherit;min-height:44px}
 .opt b{flex:none;width:22px}.opt.right{border-color:var(--ok);background:var(--ok-soft)}.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
@@ -1042,7 +1042,7 @@ function stSchede(e,s){
   const tr=c=>e.pri?(+e.pri[String(c).split(' \u00b7 ')[0]]||2):0;
   if(e.pri)cats=cats.map((c,j)=>[c,j]).sort((x,y)=>tr(x[0])-tr(y[0])||x[1]-y[1]).map(x=>x[0]);
   return cats.map((c,j)=>{const it=s.sch.filter(x=>(x.cat||'Generale')===c),r=it.filter(x=>x.r).length;
-    return `${e.pri&&(!j||tr(cats[j-1])!==tr(c))?`<small class="eyebrow" style="display:block;margin:14px 2px 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][tr(c)]}</small>`:''}<details class="card scat" ${S.stCat===c?'open':''}><summary><b>${esc(c)}</b><span class="num">${r}/${it.length}</span></summary>${it.map(x=>`<div class="sch"><b>${esc(x.t)}</b><p style="white-space:pre-wrap">${esc(x.x||'')}</p><label class="chk"><input type="checkbox" data-in="schr" data-i="${x.i}" ${x.r?'checked':''}> Letta</label></div>`).join('')}</details>`;}).join('');
+    return `${e.pri&&(!j||tr(cats[j-1])!==tr(c))?`<small class="eyebrow" style="display:block;margin:14px 2px 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][tr(c)]}</small>`:''}<details class="card scat${r===it.length?' done':''}" data-c="${esc(c)}" ${S.stCat===c?'open':''}><summary><b>${r===it.length?'✓ ':''}${esc(c)}</b><span class="num">${r}/${it.length}</span></summary>${it.map(x=>`<div class="sch${x.r?' done':''}"><b>${esc(x.t)}</b><p style="white-space:pre-wrap">${esc(x.x||'')}</p><label class="chk"><input type="checkbox" data-in="schr" data-i="${x.i}" ${x.r?'checked':''}> Letta</label></div>`).join('')}</details>`;}).join('');
 }
 function stTrappole(e,s){
   if(!s.tr.length)return stEmpty('Nessuna trappola','Qui raccogli gli errori tipici da evitare all’esame.');
@@ -1952,11 +1952,17 @@ document.addEventListener('input',e=>{
   else if(k==='cfg-corso'){S.cfg.corso=el.value.trim();persist('cfg');}
   else if(k==='cfg-ateneo'){S.cfg.ateneo=el.value.trim();persist('cfg');}
 });
+document.addEventListener('toggle',e=>{
+  const d=e.target;if(!d||!d.classList||!d.classList.contains('scat'))return;
+  if(d.open){S.stCat=d.dataset.c||'';document.querySelectorAll('details.scat[open]').forEach(o=>{if(o!==d)o.open=false;});}
+  else if(S.stCat===(d.dataset.c||''))S.stCat='';
+},true);
 document.addEventListener('change',e=>{
   const el=e.target,k=el.dataset&&el.dataset.in;if(!k)return;
   if(k==='fcorso'){S.lcorso=el.value;S.lim=40;render();}
   else if(k==='pdchk'){const x=sx(),t=stu(x);if(el.checked)t.pd[el.dataset.k]=1;else delete t.pd[el.dataset.k];saveEx(x);render();}
-  else if(k==='schr'){const x=sx(),c=stu(x).sch.find(y=>y.i===el.dataset.i);if(c){c.r=el.checked;S.stCat=c.cat||'Generale';saveEx(x);render();}}
+  else if(k==='schr'){const x=sx(),c=stu(x).sch.find(y=>y.i===el.dataset.i);if(c){const id=el.dataset.i,top=el.getBoundingClientRect().top;c.r=el.checked;S.stCat=c.cat||'Generale';saveEx(x);render();
+    const fix=()=>{const n=[...document.querySelectorAll('input[data-in="schr"]')].find(i=>i.dataset.i===id);if(n){const d=n.getBoundingClientRect().top-top;if(Math.abs(d)>1)window.scrollBy(0,d);}};fix();requestAnimationFrame(fix);}}
   else if(k==='argchk'){const x=ex(),a=x.argomenti.find(a=>a.i===el.dataset.i);a.d=el.checked;saveEx(x);render();}
   else if(k==='exf'&&el.tagName==='SELECT'){const x=ex();stu(x);saveEx(x);if(el.dataset.f==='modalita')render();}
   else if(k==='cfg-ns'){S.cfg.nonSegnate=el.value;persist('cfg');}
