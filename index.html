@@ -946,6 +946,15 @@ function planOf(e){
   let units=(e.argomenti||[]).filter(x=>!x.d).map(x=>({t:x.t,cat:x.t}));
   if(!units.length&&!(e.argomenti||[]).length)units=[...new Set((s.sch||[]).map(x=>x.cat||x.t))].map(c=>({t:c,cat:c}));
   const days=[];if(n<=0)return{a,n,days};
+  /* esame a uno o due giorni: un solo giorno di studio, con le lezioni in ordine di priorità (e.pri: prefisso lezione → 1, 2 o 3); il livello 3 è «extra» e va in fondo */
+  if(n<=2&&e.pri&&(s.sch||[]).length){
+    const cats=[...new Set(s.sch.map(x=>x.cat||'Generale'))],tier=c=>+e.pri[String(c).split(' · ')[0]]||2;
+    const t=[];[1,2].forEach(g=>cats.filter(c=>tier(c)===g).forEach(c=>t.push({t:(or?'Ripeti a voce: ':'')+c,kind:'sch',cat:c,g})));
+    if((s.fc||[]).length)t.push({t:'Flashcard da rivedere',kind:'flash',g:2});
+    cats.filter(c=>tier(c)===3).forEach(c=>t.push({t:(or?'Ripeti a voce: ':'')+c,kind:'sch',cat:c,g:3}));
+    days.push({d:T.date,t:t.map((x,j)=>({...x,k:T.date+'|'+j}))});
+    return{a,n,days};
+  }
   /* circa 3 giorni di studio a settimana, contati all'indietro dalla data d'esame (1, 4 e 6 giorni prima, poi ogni 7): il piano resta lo stesso da un giorno all'altro e gli altri giorni sono di riposo */
   const off=[];for(let o=1;o<=n;o++)if([1,4,6].includes(o%7))off.push(o);
   if(off.length<2&&n>=3)off.push(3);
@@ -1010,7 +1019,7 @@ function stPiano(e,s){
   const tot=P.days.reduce((a,d)=>a+d.t.length,0),done=P.days.reduce((a,d)=>a+d.t.filter(x=>s.pd[x.k]).length,0);
   const show=S.stAll?P.days:P.days.slice(0,5);
   let h=`<section class="card stack"><div class="row sp"><h2>Piano di studio</h2><span class="num">${done}/${tot}</span></div><div class="bar"><i style="width:${tot?100*done/tot:0}%"></i></div><small>Circa 3 giorni di studio a settimana, gli altri sono di riposo. Si adatta a argomenti, materiale e data dell’esame.</small>`;
-  show.forEach((d,i)=>{h+=`<div class="pday"><div class="dh"><span>${d.d===T.date?'Oggi':fDS(d.d)}</span><small>${rel(d.d)}</small></div>${d.t.map(x=>`<div class="task"><label class="chk" style="flex:1"><input type="checkbox" data-in="pdchk" data-k="${esc(x.k)}" ${s.pd[x.k]?'checked':''}> <span ${s.pd[x.k]?'class="muted" style="text-decoration:line-through"':''}>${esc(x.t)}</span></label>${(x.kind==='sch'?s.sch.length:x.kind==='flash'?s.fc.length:x.kind==='sim'?canSim(e):s.qz.length)?`<button class="btn sm" data-a="st-go" data-v="${x.kind}" data-c="${esc(x.cat||'')}">${x.kind==='sch'?'Scheda':x.kind==='flash'?'Flashcard':x.kind==='sim'?'Simula':'Quiz'}</button>`:''}</div>`).join('')}</div>`;});
+  show.forEach((d,i)=>{h+=`<div class="pday"><div class="dh"><span>${d.d===T.date?'Oggi':fDS(d.d)}</span><small>${rel(d.d)}</small></div>${d.t.map((x,j)=>`${x.g&&(!j||d.t[j-1].g!==x.g)?`<small class="eyebrow" style="display:block;margin:10px 0 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][x.g]}</small>`:''}<div class="task"><label class="chk" style="flex:1"><input type="checkbox" data-in="pdchk" data-k="${esc(x.k)}" ${s.pd[x.k]?'checked':''}> <span ${s.pd[x.k]?'class="muted" style="text-decoration:line-through"':''}>${esc(x.t)}</span></label>${(x.kind==='sch'?s.sch.length:x.kind==='flash'?s.fc.length:x.kind==='sim'?canSim(e):s.qz.length)?`<button class="btn sm" data-a="st-go" data-v="${x.kind}" data-c="${esc(x.cat||'')}">${x.kind==='sch'?'Scheda':x.kind==='flash'?'Flashcard':x.kind==='sim'?'Simula':'Quiz'}</button>`:''}</div>`).join('')}</div>`;});
   if(P.days.length>5)h+=`<button class="btn" data-a="st-all">${S.stAll?'Mostra meno':'Mostra tutti i '+P.days.length+' giorni di studio'}</button>`;
   return h+'</section>';
 }
