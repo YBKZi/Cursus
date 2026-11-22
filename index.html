@@ -1033,9 +1033,12 @@ function stMateriale(e,s){
 }
 function stSchede(e,s){
   if(!s.sch.length)return stEmpty('Nessuna scheda','Le schede riassumono ogni argomento. Caricale o generale dal tuo materiale.');
-  const cats=[...new Set(s.sch.map(x=>x.cat||'Generale'))];
-  return cats.map(c=>{const it=s.sch.filter(x=>(x.cat||'Generale')===c),r=it.filter(x=>x.r).length;
-    return `<details class="card scat" ${S.stCat===c?'open':''}><summary><b>${esc(c)}</b><span class="num">${r}/${it.length}</span></summary>${it.map(x=>`<div class="sch"><b>${esc(x.t)}</b><p style="white-space:pre-wrap">${esc(x.x||'')}</p><label class="chk"><input type="checkbox" data-in="schr" data-i="${x.i}" ${x.r?'checked':''}> Letta</label></div>`).join('')}</details>`;}).join('');
+  let cats=[...new Set(s.sch.map(x=>x.cat||'Generale'))];
+  /* con le priorità dell'esame (e.pri) le schede seguono l'ordine del piano: priorità, essenziale, extra */
+  const tr=c=>e.pri?(+e.pri[String(c).split(' \u00b7 ')[0]]||2):0;
+  if(e.pri)cats=cats.map((c,j)=>[c,j]).sort((x,y)=>tr(x[0])-tr(y[0])||x[1]-y[1]).map(x=>x[0]);
+  return cats.map((c,j)=>{const it=s.sch.filter(x=>(x.cat||'Generale')===c),r=it.filter(x=>x.r).length;
+    return `${e.pri&&(!j||tr(cats[j-1])!==tr(c))?`<small class="eyebrow" style="display:block;margin:14px 2px 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][tr(c)]}</small>`:''}<details class="card scat" ${S.stCat===c?'open':''}><summary><b>${esc(c)}</b><span class="num">${r}/${it.length}</span></summary>${it.map(x=>`<div class="sch"><b>${esc(x.t)}</b><p style="white-space:pre-wrap">${esc(x.x||'')}</p><label class="chk"><input type="checkbox" data-in="schr" data-i="${x.i}" ${x.r?'checked':''}> Letta</label></div>`).join('')}</details>`;}).join('');
 }
 function stTrappole(e,s){
   if(!s.tr.length)return stEmpty('Nessuna trappola','Qui raccogli gli errori tipici da evitare all’esame.');
