@@ -923,11 +923,13 @@ function simScore(q,e){
 }
 function prepOf(e){
   const s=e.studio||{},p=[];
-  const ar=e.argomenti||[];if(ar.length)p.push(ar.filter(x=>x.d).length/ar.length);
+  /* con le priorità dell'esame (e.pri) gli extra (livello 3) non contano: 100% = priorità + essenziale */
+  const ex3=t=>!!e.pri&&+e.pri[String(t||'').split(' \u00b7 ')[0]]===3;
+  const ar=(e.argomenti||[]).filter(x=>!ex3(x.t));if(ar.length)p.push(ar.filter(x=>x.d).length/ar.length);
   const dm=e.domande||[];if(dm.length)p.push(dm.filter(x=>x.k).length/dm.length);
   const fc=s.fc||[];if(fc.length)p.push(fc.reduce((a,c)=>a+Math.min(3,c.lv||0),0)/(fc.length*3));
   const qz=s.qz||[],qs=s.qs||{};if(qz.length)p.push(qz.filter(q=>qs[q.i]===1).length/qz.length);
-  const sc=s.sch||[];if(sc.length)p.push(sc.filter(x=>x.r).length/sc.length);
+  const sc=(s.sch||[]).filter(x=>!ex3(x.cat));if(sc.length)p.push(sc.filter(x=>x.r).length/sc.length);
   const os=s.os||{},oi=Object.keys(os);if(oi.length){const it=openItems(e);p.push(it.length?Math.min(1,it.reduce((a,x)=>a+(os[x.k]||0),0)/it.length):0);}
   return p.length?Math.round(100*p.reduce((a,b)=>a+b,0)/p.length):null;
 }
