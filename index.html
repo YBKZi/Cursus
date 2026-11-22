@@ -278,6 +278,7 @@ details>summary{list-style:none}details>summary::-webkit-details-marker{display:
 .xstats small{display:block}.xstats .num{display:block;font-size:24px;line-height:1.15;margin:2px 0 6px}
 .pday{padding-top:8px}.task{display:flex;align-items:center;gap:8px;min-height:38px}
 .scat summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;min-height:36px}
+.exgrp>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;margin:14px 2px 6px;min-height:32px}.exgrp>summary::-webkit-details-marker{display:none}.exgrp>summary::before{content:'\25B8';font-size:13px;color:var(--muted);transition:transform .15s}.exgrp[open]>summary::before{transform:rotate(90deg)}.exgrp>summary small{margin:0}
 .sch{padding:10px 0;border-top:1px solid var(--line)}.sch p{margin:4px 0 6px}.scat.done:not([open]){opacity:.45}.sch.done{opacity:.5}
 .qtext{font-weight:600;font-size:18px;line-height:1.3}
 .opt{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:11px 13px;cursor:pointer;font:inherit;min-height:44px}
@@ -1008,7 +1009,7 @@ V.studio=()=>{
   if(!S.stId||!S.exams[S.stId]||S.exams[S.stId].stato==='superato')S.stId=stDefault();
   const e=sx(),s=stu(e);
   const has=s.sch.length+s.qz.length+s.fc.length+s.tr.length;
-  const tab=S.stTab||(has?'piano':'materiale');
+  const tab=S.stTab||(s.sch.length?'schede':has?'piano':'materiale');
   let h=`<div class="chips">${list.map(x=>`<button class="chip" data-a="st-pick" data-id="${x.id}" aria-pressed="${x.id===S.stId}">${esc(nm(x.corso))}</button>`).join('')}</div>`;
   h+=heroCard(e,false);
   {const f=s.fmt;let sm=fmtSum(f);if(e.modalita&&!MODMAP[e.modalita])sm=sm?e.modalita+' · '+sm:e.modalita;sm=sm||'';h+=`<section class="card"><div class="row sp"><span style="min-width:0"><small class="eyebrow">Tipo di esame</small><div>${sm?esc(sm):'<span class="muted">Impostalo nella scheda dell\'esame: lo studio si adatta.</span>'}</div></span><button class="btn sm ${sm?'':'pri'}" data-a="ex-open" data-id="${e.id}">${sm?'Modifica':'Imposta'}</button></div></section>`;}
@@ -1023,7 +1024,7 @@ function stPiano(e,s){
   const tot=P.days.reduce((a,d)=>a+d.t.length,0),done=P.days.reduce((a,d)=>a+d.t.filter(x=>s.pd[x.k]).length,0);
   const show=S.stAll?P.days:P.days.slice(0,5);
   let h=`<section class="card stack"><div class="row sp"><h2>Piano di studio</h2><span class="num">${done}/${tot}</span></div><div class="bar"><i style="width:${tot?100*done/tot:0}%"></i></div><small>Circa 3 giorni di studio a settimana, gli altri sono di riposo. Si adatta a argomenti, materiale e data dell’esame.</small>`;
-  show.forEach((d,i)=>{h+=`<div class="pday"><div class="dh"><span>${d.d===T.date?'Oggi':fDS(d.d)}</span><small>${rel(d.d)}</small></div>${d.t.map((x,j)=>`${x.g&&(!j||d.t[j-1].g!==x.g)?`<small class="eyebrow" style="display:block;margin:10px 0 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][x.g]}</small>`:''}<div class="task"><label class="chk" style="flex:1"><input type="checkbox" data-in="pdchk" data-k="${esc(x.k)}" ${s.pd[x.k]?'checked':''}> <span ${s.pd[x.k]?'class="muted" style="text-decoration:line-through"':''}>${esc(x.t)}</span></label>${(x.kind==='sch'?s.sch.length:x.kind==='flash'?s.fc.length:x.kind==='sim'?canSim(e):s.qz.length)?`<button class="btn sm" data-a="st-go" data-v="${x.kind}" data-c="${esc(x.cat||'')}">${x.kind==='sch'?'Scheda':x.kind==='flash'?'Flashcard':x.kind==='sim'?'Simula':'Quiz'}</button>`:''}</div>`).join('')}</div>`;});
+  show.forEach((d,i)=>{h+=`<div class="pday"><div class="dh"><span>${d.d===T.date?'Oggi':fDS(d.d)}</span><small>${rel(d.d)}</small></div>${(()=>{const tk=x=>`<div class="task"><label class="chk" style="flex:1"><input type="checkbox" data-in="pdchk" data-k="${esc(x.k)}" ${s.pd[x.k]?'checked':''}> <span ${s.pd[x.k]?'class="muted" style="text-decoration:line-through"':''}>${esc(x.t)}</span></label>${(x.kind==='sch'?s.sch.length:x.kind==='flash'?s.fc.length:x.kind==='sim'?canSim(e):s.qz.length)?`<button class="btn sm" data-a="st-go" data-v="${x.kind}" data-c="${esc(x.cat||'')}">${x.kind==='sch'?'Scheda':x.kind==='flash'?'Flashcard':x.kind==='sim'?'Simula':'Quiz'}</button>`:''}</div>`;const mn=d.t.filter(x=>x.g!==3),ex=d.t.filter(x=>x.g===3);return mn.map((x,j)=>`${x.g&&(!j||mn[j-1].g!==x.g)?`<small class="eyebrow" style="display:block;margin:10px 0 2px">${['','Prima: le priorità','Poi: l’essenziale'][x.g]}</small>`:''}${tk(x)}`).join('')+(ex.length?`<details class="exgrp" ${S.stEx?'open':''}><summary><small class="eyebrow">Extra, solo se avanzi tempo</small></summary>${ex.map(tk).join('')}</details>`:'');})()}</div>`;});
   if(P.days.length>5)h+=`<button class="btn" data-a="st-all">${S.stAll?'Mostra meno':'Mostra tutti i '+P.days.length+' giorni di studio'}</button>`;
   return h+'</section>';
 }
@@ -1041,8 +1042,11 @@ function stSchede(e,s){
   /* con le priorità dell'esame (e.pri) le schede seguono l'ordine del piano: priorità, essenziale, extra */
   const tr=c=>e.pri?(+e.pri[String(c).split(' \u00b7 ')[0]]||2):0;
   if(e.pri)cats=cats.map((c,j)=>[c,j]).sort((x,y)=>tr(x[0])-tr(y[0])||x[1]-y[1]).map(x=>x[0]);
-  return cats.map((c,j)=>{const it=s.sch.filter(x=>(x.cat||'Generale')===c),r=it.filter(x=>x.r).length;
-    return `${e.pri&&(!j||tr(cats[j-1])!==tr(c))?`<small class="eyebrow" style="display:block;margin:14px 2px 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][tr(c)]}</small>`:''}<details class="card scat${r===it.length?' done':''}" data-c="${esc(c)}" ${S.stCat===c?'open':''}><summary><b>${r===it.length?'✓ ':''}${esc(c)}</b><span class="num">${r}/${it.length}</span></summary>${it.map(x=>`<div class="sch${x.r?' done':''}"><b>${esc(x.t)}</b><p style="white-space:pre-wrap">${esc(x.x||'')}</p><label class="chk"><input type="checkbox" data-in="schr" data-i="${x.i}" ${x.r?'checked':''}> Letta</label></div>`).join('')}</details>`;}).join('');
+  const ex3=c=>!!e.pri&&tr(c)===3,exOpen=!!S.stEx||ex3(S.stCat);
+  const card=(c,j)=>{const it=s.sch.filter(x=>(x.cat||'Generale')===c),r=it.filter(x=>x.r).length;
+    return `${e.pri&&!ex3(c)&&(!j||tr(cats[j-1])!==tr(c))?`<small class="eyebrow" style="display:block;margin:14px 2px 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][tr(c)]}</small>`:''}<details class="card scat${r===it.length?' done':''}" data-c="${esc(c)}" ${S.stCat===c?'open':''}><summary><b>${r===it.length?'✓ ':''}${esc(c)}</b><span class="num">${r}/${it.length}</span></summary>${it.map(x=>`<div class="sch${x.r?' done':''}"><b>${esc(x.t)}</b><p style="white-space:pre-wrap">${esc(x.x||'')}</p><label class="chk"><input type="checkbox" data-in="schr" data-i="${x.i}" ${x.r?'checked':''}> Letta</label></div>`).join('')}</details>`;};
+  const main=cats.map((c,j)=>[c,j]).filter(x=>!ex3(x[0])).map(x=>card(x[0],x[1])).join(''),exs=cats.map((c,j)=>[c,j]).filter(x=>ex3(x[0]));
+  return main+(exs.length?`<details class="exgrp" ${exOpen?'open':''}><summary><small class="eyebrow">Extra, solo se avanzi tempo</small></summary>${exs.map(x=>card(x[0],x[1])).join('')}</details>`:'');
 }
 function stTrappole(e,s){
   if(!s.tr.length)return stEmpty('Nessuna trappola','Qui raccogli gli errori tipici da evitare all’esame.');
@@ -1953,7 +1957,8 @@ document.addEventListener('input',e=>{
   else if(k==='cfg-ateneo'){S.cfg.ateneo=el.value.trim();persist('cfg');}
 });
 document.addEventListener('toggle',e=>{
-  const d=e.target;if(!d||!d.classList||!d.classList.contains('scat'))return;
+  const d=e.target;if(d&&d.classList&&d.classList.contains('exgrp')){S.stEx=d.open;return;}
+  if(!d||!d.classList||!d.classList.contains('scat'))return;
   if(d.open){S.stCat=d.dataset.c||'';document.querySelectorAll('details.scat[open]').forEach(o=>{if(o!==d)o.open=false;});}
   else if(S.stCat===(d.dataset.c||''))S.stCat='';
 },true);
