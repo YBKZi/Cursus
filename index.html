@@ -880,7 +880,7 @@ function marzoHTML(soon){
 
 
 /* ====================== studio ====================== */
-const STABS=[['piano','Piano'],['materiale','Materiale'],['schede','Schede'],['quiz','Quiz'],['flash','Flashcard'],['trappole','Trappole']];
+const STABS=[['schede','Schede'],['flash','Flashcard'],['quiz','Quiz'],['trappole','Trappole'],['piano','Piano'],['materiale','Materiale']];
 function stu(e){if(!e.studio)e.studio={sch:[],qz:[],fc:[],tr:[],mat:[],pd:{},qs:{},sims:[]};const s=e.studio;['sch','qz','fc','tr','mat','sims'].forEach(k=>{if(!s[k])s[k]=[];});if(!s.pd)s.pd={};if(!s.qs)s.qs={};if(!s.os)s.os={};if(!s.fmt)s.fmt={};if(e.modalita===undefined){if(s.fmt.tipo&&MODINV[s.fmt.tipo])e.modalita=MODINV[s.fmt.tipo];}else s.fmt.tipo=MODMAP[e.modalita]||'';return s;}
 const sx=()=>S.exams[S.stId];
 const MODMAP={'Scritto':'scritto','Orale':'orale','Scritto + orale':'misto'},MODINV={scritto:'Scritto',orale:'Orale',misto:'Scritto + orale'};
