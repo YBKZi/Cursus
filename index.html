@@ -278,6 +278,7 @@ details>summary{list-style:none}details>summary::-webkit-details-marker{display:
 .xstats small{display:block}.xstats .num{display:block;font-size:24px;line-height:1.15;margin:2px 0 6px}
 .pday{padding-top:8px}.task{display:flex;align-items:center;gap:8px;min-height:38px}
 .scat summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;min-height:36px}
+.spk-b{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.spk-b .btn{flex:1 1 44%;min-height:48px;font-size:15px}
 .exgrp>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;margin:14px 2px 6px;min-height:32px}.exgrp>summary::-webkit-details-marker{display:none}.exgrp>summary::before{content:'\25B8';font-size:13px;color:var(--muted);transition:transform .15s}.exgrp[open]>summary::before{transform:rotate(90deg)}.exgrp>summary small{margin:0}
 .sch{padding:10px 0;border-top:1px solid var(--line)}.sch p{margin:4px 0 6px}.scat.done:not([open]){opacity:.45}.sch.done{opacity:.5}
 .qtext{font-weight:600;font-size:18px;line-height:1.3}
@@ -1036,6 +1037,48 @@ function stMateriale(e,s){
   if(s.mat.length)h+=`<section class="card stack"><h2>Testi caricati</h2>${s.mat.map(m=>`<div class="row"><span style="flex:1;min-width:0"><b>${esc(m.t)}</b><br><small>${m.x.length.toLocaleString('it-IT')} caratteri</small></span><button class="btn sm" data-a="st-matdel" data-i="${m.i}" aria-label="Elimina">✕</button></div>`).join('')}</section>`;
   return h;
 }
+/* lettura a voce delle schede (sintesi vocale del telefono, in italiano) */
+const SPKG=[['match','Match analysis'],['salto','Test di salto'],['campo','Test di campo'],['agility','Test di agility']];
+const SPK_AG=/agility|illinois|5-0-5|t-test|cambio di direzione/i;
+function spkItems(e,g){
+  const sc=stu(e).sch,isAg=x=>x.cat==='L15 · Test da campo'&&SPK_AG.test(x.t);
+  return sc.filter(x=>g==='match'?String(x.cat).startsWith('L17 ·'):g==='salto'?x.cat==='L15 · Test di salto':g==='agility'?isAg(x):g==='campo'?(x.cat==='L15 · Test da campo'&&!isAg(x)):false);
+}
+function spkChunks(items){
+  const out=[];
+  items.forEach(x=>{
+    out.push(String(x.t||'').replace(/[()]/g,' '));
+    String(x.x||'').replace(/[••]/g,'').replace(/→/g,' diventa ').replace(/×/g,' per ').replace(/%/g,' per cento').replace(/\s*\/\s*/g,' su ').split(/\n+/).forEach(par=>{
+      par=par.trim();if(!par)return;
+      (par.match(/[^.;:!?]+[.;:!?]*/g)||[par]).forEach(fr=>{
+        fr=fr.trim();if(!fr)return;
+        while(fr.length>220){let k=fr.lastIndexOf(',',220);if(k<80)k=fr.lastIndexOf(' ',220);out.push(fr.slice(0,k+1));fr=fr.slice(k+1).trim();}
+        if(fr)out.push(fr);
+      });
+    });
+    out.push('');
+  });
+  return out;
+}
+function spkStop(msg){try{speechSynthesis.cancel();}catch(_){}S.spk=null;spkMsg(msg||'');}
+function spkMsg(t){S.spkMsg=t;const el=document.getElementById('spk-st');if(el)el.textContent=t||'Tocca un gruppo: legge titolo e testo di ogni scheda.';}
+function spkPlay(e,g){
+  if(!('speechSynthesis' in window)){spkMsg('Questo dispositivo non supporta la lettura a voce.');return;}
+  const items=spkItems(e,g);if(!items.length){spkMsg('Nessuna scheda in questo gruppo.');return;}
+  try{speechSynthesis.cancel();}catch(_){}
+  const ch=spkChunks(items),id=Date.now();S.spk=id;let i=0;
+  const voices=speechSynthesis.getVoices(),v=voices.find(x=>/^it/i.test(x.lang)&&/premium|enhanced|siri|google/i.test(x.name))||voices.find(x=>/^it/i.test(x.lang));
+  const next=()=>{
+    if(S.spk!==id)return;
+    while(i<ch.length&&!ch[i])i++;
+    if(i>=ch.length){S.spk=null;spkMsg('Lettura finita.');return;}
+    const u=new SpeechSynthesisUtterance(ch[i]);u.lang='it-IT';if(v)u.voice=v;u.rate=1;
+    const cur=i;u.onend=()=>{i=cur+1;if(ch[i]==='')setTimeout(next,450);else next();};u.onerror=ev=>{if(S.spk===id&&ev.error!=='interrupted'&&ev.error!=='canceled'){i=cur+1;next();}};
+    const sc=items.filter(x=>ch[cur]===String(x.t||'').replace(/[()]/g,' '))[0];if(sc)spkMsg('Sto leggendo: '+sc.t);
+    speechSynthesis.speak(u);
+  };
+  spkMsg('Parto…');next();
+}
 function stSchede(e,s){
   if(!s.sch.length)return stEmpty('Nessuna scheda','Le schede riassumono ogni argomento. Caricale o generale dal tuo materiale.');
   let cats=[...new Set(s.sch.map(x=>x.cat||'Generale'))];
@@ -1043,10 +1086,11 @@ function stSchede(e,s){
   const tr=c=>e.pri?(+e.pri[String(c).split(' \u00b7 ')[0]]||2):0;
   if(e.pri)cats=cats.map((c,j)=>[c,j]).sort((x,y)=>tr(x[0])-tr(y[0])||x[1]-y[1]).map(x=>x[0]);
   const ex3=c=>!!e.pri&&tr(c)===3,exOpen=!!S.stEx||ex3(S.stCat);
+  const bar=e.pri?`<section class="card spk"><small class="eyebrow">Ascolta a voce</small><div class="spk-b">${SPKG.map(g=>`<button class="btn" data-a="spk" data-g="${g[0]}">🔊 ${g[1]}</button>`).join('')}<button class="btn" data-a="spk-stop">⏹ Stop</button></div><small class="muted" id="spk-st">${esc(S.spkMsg||'Tocca un gruppo: legge titolo e testo di ogni scheda.')}</small></section>`:'';
   const card=(c,j)=>{const it=s.sch.filter(x=>(x.cat||'Generale')===c),r=it.filter(x=>x.r).length;
     return `${e.pri&&!ex3(c)&&(!j||tr(cats[j-1])!==tr(c))?`<small class="eyebrow" style="display:block;margin:14px 2px 2px">${['','Prima: le priorità','Poi: l’essenziale','Extra, solo se avanzi tempo'][tr(c)]}</small>`:''}<details class="card scat${r===it.length?' done':''}" data-c="${esc(c)}" ${S.stCat===c?'open':''}><summary><b>${r===it.length?'✓ ':''}${esc(c)}</b><span class="num">${r}/${it.length}</span></summary>${it.map(x=>`<div class="sch${x.r?' done':''}"><b>${esc(x.t)}</b><p style="white-space:pre-wrap">${esc(x.x||'')}</p><label class="chk"><input type="checkbox" data-in="schr" data-i="${x.i}" ${x.r?'checked':''}> Letta</label></div>`).join('')}</details>`;};
   const main=cats.map((c,j)=>[c,j]).filter(x=>!ex3(x[0])).map(x=>card(x[0],x[1])).join(''),exs=cats.map((c,j)=>[c,j]).filter(x=>ex3(x[0]));
-  return main+(exs.length?`<details class="exgrp" ${exOpen?'open':''}><summary><small class="eyebrow">Extra, solo se avanzi tempo</small></summary>${exs.map(x=>card(x[0],x[1])).join('')}</details>`:'');
+  return bar+main+(exs.length?`<details class="exgrp" ${exOpen?'open':''}><summary><small class="eyebrow">Extra, solo se avanzi tempo</small></summary>${exs.map(x=>card(x[0],x[1])).join('')}</details>`:'');
 }
 function stTrappole(e,s){
   if(!s.tr.length)return stEmpty('Nessuna trappola','Qui raccogli gli errori tipici da evitare all’esame.');
@@ -1784,6 +1828,8 @@ const A={
   'st-open':el=>{S.tab='studio';S.stId=el.dataset.id;S.stTab='';S.qz=null;S.fc=null;S.exId=null;render();window.scrollTo(0,0);},
   'st-pick':el=>{S.stId=el.dataset.id;S.stTab='';S.qz=null;S.fc=null;render();},
   'st-tab':el=>{S.stTab=el.dataset.v;render();},
+  'spk':el=>{spkPlay(sx(),el.dataset.g);},
+  'spk-stop':()=>{spkStop('Fermato.');},
   'st-all':()=>{S.stAll=!S.stAll;render();},
   'st-go':el=>{const v=el.dataset.v;S.stTab=v==='sch'?'schede':v==='flash'?'flash':'quiz';S.stCat=el.dataset.c||'';render();if(v==='sim')A['qz-start']({dataset:{m:'sim'}});window.scrollTo(0,0);},
   'st-file':()=>$('#file-pack').click(),
