@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/logo-512.png"><link rel="apple-touch-icon" href="icons/logo-512.png"><meta name="theme-color" content="#000000"><meta name="apple-mobile-web-app-title" content="Study">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/logo-512.png"><link rel="apple-touch-icon" href="icons/logo-512.png"><meta name="theme-color" content="#000000"><meta name="apple-mobile-web-app-title" content="Studio">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
@@ -11,7 +11,7 @@
   location.replace('https://ybkzi.github.io/StudyFilippo/'+location.hash);
 })();
 </script>
-<title>Study</title>
+<title>Studio</title>
 <link rel="preload" href="fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/jost-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -1940,7 +1940,7 @@ const A={
       onSubmit:v=>{let n=0;ex.forEach((e,i)=>{const c=Math.round(+v['c'+i]);if(c>0){e.cfu=c;saveEx(e);n++;}});if(!n){toast('Scrivi almeno un numero di CFU');return false;}render();toast(`${pl(n,'esame aggiornato','esami aggiornati')}`);}});
   },
   libretto:()=>{
-    sheet({title:'Incolla il libretto',intro:'Apri il libretto in Esse3, seleziona la tabella, copia e incolla qui. Study riconosce nomi, CFU e voti: prima di salvare vedrai un riepilogo da controllare.',
+    sheet({title:'Incolla il libretto',intro:'Apri il libretto in Esse3, seleziona la tabella, copia e incolla qui. Studio riconosce nomi, CFU e voti: prima di salvare vedrai un riepilogo da controllare.',
       fields:[{k:'txt',l:'Testo del libretto',t:'textarea',rows:8}],submit:'Leggi il libretto',noFocus:false,
       onSubmit:v=>{if(!v.txt.trim()){toast('Incolla prima il testo');return false;}setTimeout(()=>readLibretto(v.txt),0);}});
   },

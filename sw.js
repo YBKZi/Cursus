@@ -1,7 +1,7 @@
 /* Study: service worker.
    Pagina: si apre subito dalla copia salvata e intanto controllo se ce n'è una nuova (se c'è, la pagina viene avvisata).
    Il resto (icone, font, manifest): prima la copia salvata. Cambiando V si rifà tutto. */
-const V='cursus-v7';
+const V='cursus-v8';
 const FILES=['./','index.html','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/logo-512.png','fonts/inter-latin-wght.woff2','fonts/jost-latin-wght.woff2'];
 const ROOT=self.registration.scope,IDX=new URL('index.html',ROOT).href;
 
