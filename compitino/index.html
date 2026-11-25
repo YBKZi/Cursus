@@ -1354,9 +1354,10 @@ function syncChip(){
   return `<button id="syncchip" class="syncchip ${cls}" disabled><i></i>${esc(txt)}</button>`;
 }
 function impPanel(){
+  const note=`<p class="small">I progressi sono salvati online per ritrovarli su ogni dispositivo. Il salvataggio lo gestisce Emanuele, che può vederli.</p>`;
   const msg=SYNC.impMsg?`<p class="small">${esc(SYNC.impMsg)}</p>`:"";
-  if(!SYNC.showImp)return `<div class="stack-s">${msg}<button class="syncchip" data-act="imp-toggle">Hai progressi su un'altra versione? Importali ›</button></div>`;
-  return `<section class="glass card"><span class="eyebrow">Importa progressi</span><h2>Incolla il codice</h2><p class="small">Nella vecchia app tocca «Copia i miei progressi» e incolla qui. I progressi si uniscono a quelli che hai già: non viene cancellato niente.</p><textarea id="impbox" rows="3" style="width:100%;margin:8px 0;font:inherit"></textarea>${msg}<div class="row"><button class="btn" data-act="imp-go">Importa</button><button class="btn glassbtn" data-act="imp-toggle">Chiudi</button></div></section>`;
+  if(!SYNC.showImp)return `<div class="stack-s">${note}${msg}<button class="syncchip" data-act="imp-toggle">Hai progressi su un'altra versione? Importali ›</button></div>`;
+  return `<section class="glass card">${note}<span class="eyebrow">Importa progressi</span><h2>Incolla il codice</h2><p class="small">Nella vecchia app tocca «Copia i miei progressi» e incolla qui. I progressi si uniscono a quelli che hai già: non viene cancellato niente.</p><textarea id="impbox" rows="3" style="width:100%;margin:8px 0;font:inherit"></textarea>${msg}<div class="row"><button class="btn" data-act="imp-go">Importa</button><button class="btn glassbtn" data-act="imp-toggle">Chiudi</button></div></section>`;
 }
 
 /* ---------- eventi ---------- */
