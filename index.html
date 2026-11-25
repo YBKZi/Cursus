@@ -4,6 +4,19 @@
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/logo-512.png"><link rel="apple-touch-icon" href="icons/logo-512.png"><meta name="theme-color" content="#000000"><meta name="apple-mobile-web-app-title" content="Study">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* /compitino/ è un'altra app. Se un vecchio service worker serve Study al suo posto, fermo questa pagina e carico la vera app */
+(function(){var m=/^(.*\/compitino\/)(index\.html)?$/.exec(location.pathname);if(!m)return;
+  try{window.stop()}catch(e){}
+  fetch(m[1]+'index.html?h='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){
+    if(t.indexOf('filippo_get')<0)throw 0;
+    document.open();document.write(t);document.close();
+  }).catch(function(){
+    var go=function(){location.reload()};
+    try{navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}).then(go,go)}catch(e){go()}
+  });
+})();
+</script>
 <title>Study</title>
 <link rel="preload" href="fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/jost-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
@@ -478,8 +491,8 @@ let SKEY=null,HKEY=null;
 /* la chiave nel link viene salvata solo dopo che il database l'ha riconosciuta (vedi boot) */
 try{const m=/[#&]k=([^&]+)/.exec(location.hash);if(m){HKEY=decodeURIComponent(m[1]);history.replaceState(null,'',location.pathname+location.search);}SKEY=HKEY||localStorage.getItem('cursus.k');}catch(e){}
 /* senza chiave valida la pagina si presenta come una 404 qualsiasi (GitHub Pages non può restituire il codice HTTP 404 in base a un #hash) */
-function show404(){
-  try{localStorage.removeItem('cursus.k');localStorage.removeItem('cursus.cache');}catch(e){}
+function show404(forget=true){
+  if(forget){try{localStorage.removeItem('cursus.k');localStorage.removeItem('cursus.cache');}catch(e){}}
   SKEY=null;CACHE={};
   document.title='404 Not Found';
   document.documentElement.removeAttribute('data-theme');
@@ -542,7 +555,7 @@ async function boot(){
     if(!known){
       try{await rpc('cursus_get',{});localStorage.setItem('cursus.k',HKEY);}
       catch(e){
-        if(e&&(e.code===400||e.code===401||e.code===403)){show404();return;}
+        if(e&&(e.code===400||e.code===401||e.code===403)){show404(false);return;}
         $('#view').innerHTML='<div class="empty">Nessuna connessione. Riapri il link quando sei online.</div>';return;
       }
     }
