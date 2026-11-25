@@ -474,8 +474,19 @@ function applySnap(snap){
   if(ch)rerender();
 }
 const SB={url:'https://fxzdmjixwiekdiivpmgj.supabase.co',anon:'sb_publishable_lmn6phY8JlxwTEXmyQQ7mA_eNhoNvO4'};
-let SKEY=null;
-try{const m=/[#&]k=([^&]+)/.exec(location.hash);if(m){SKEY=decodeURIComponent(m[1]);localStorage.setItem('cursus.k',SKEY);history.replaceState(null,'',location.pathname+location.search);}else SKEY=localStorage.getItem('cursus.k');}catch(e){}
+let SKEY=null,HKEY=null;
+/* la chiave nel link viene salvata solo dopo che il database l'ha riconosciuta (vedi boot) */
+try{const m=/[#&]k=([^&]+)/.exec(location.hash);if(m){HKEY=decodeURIComponent(m[1]);history.replaceState(null,'',location.pathname+location.search);}SKEY=HKEY||localStorage.getItem('cursus.k');}catch(e){}
+/* senza chiave valida la pagina si presenta come una 404 qualsiasi (GitHub Pages non può restituire il codice HTTP 404 in base a un #hash) */
+function show404(){
+  try{localStorage.removeItem('cursus.k');localStorage.removeItem('cursus.cache');}catch(e){}
+  SKEY=null;CACHE={};
+  document.title='404 Not Found';
+  document.documentElement.removeAttribute('data-theme');
+  document.body.className='';
+  document.body.removeAttribute('style');
+  document.body.innerHTML='<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fff;color:#111;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;text-align:center"><div><h1 style="margin:0 0 .4em;font-size:2.4em;font-weight:600">404</h1><p style="margin:0;color:#555">This page could not be found.</p></div></div>';
+}
 const LS={g(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
 async function rpc(fn,body,meta){
   const r=await fetch(SB.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SB.anon,'Authorization':'Bearer '+SB.anon,'Content-Type':'application/json'},body:JSON.stringify({p_key:SKEY,...body})});
@@ -520,12 +531,22 @@ async function pull(){
       Object.keys(OUT).forEach(id=>{if(OUT[id].del)delete n[id];else n[id]=OUT[id].data;});
       CACHE=n;saveCache();applySnap(snapOf());
     }
-  }catch(e){if(e&&e.code===401||e&&e.code===403||e&&e.code===400){}}
+  }catch(e){if(e&&(e.code===401||e.code===403)){_poll=false;show404();return;}}
   _poll=false;
 }
 async function boot(){
   S.name='Emanuele';
-  if(!SKEY){S.mode='nokey';banner();$('#view').innerHTML='<div class="empty">Per collegare questo dispositivo apri il tuo link personale (quello con #k=…) una volta.</div>';return;}
+  if(!SKEY){show404();return;}
+  if(HKEY){
+    let known=false;try{known=localStorage.getItem('cursus.k')===HKEY;}catch(e){}
+    if(!known){
+      try{await rpc('cursus_get',{});localStorage.setItem('cursus.k',HKEY);}
+      catch(e){
+        if(e&&(e.code===400||e.code===401||e.code===403)){show404();return;}
+        $('#view').innerHTML='<div class="empty">Nessuna connessione. Riapri il link quando sei online.</div>';return;
+      }
+    }
+  }
   S.mode='wait';
   if(Object.keys(CACHE).length)applySnap(snapOf());
   await pull();
