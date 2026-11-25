@@ -40,6 +40,7 @@ async function page(e){
 self.addEventListener('fetch',e=>{
   const r=e.request;
   if(r.method!=='GET'||new URL(r.url).origin!==location.origin)return;
+  if(new URL(r.url).pathname.includes('/compitino/'))return; /* altra app, non passa da qui */
   if(r.mode==='navigate'||r.destination==='document'){e.respondWith(page(e).catch(()=>caches.match(IDX)));return;}
   e.respondWith(caches.match(r,{ignoreSearch:true}).then(m=>m||fetch(r).then(x=>{if(x.ok){const k=x.clone();caches.open(V).then(h=>h.put(r,k));}return x;})));
 });
